@@ -63,6 +63,8 @@ void wlan_hdd_create_mib_stats_lock(void);
  */
 void wlan_hdd_destroy_mib_stats_lock(void);
 #else
+#define hdd_debugfs_process_mib_stats(adapter, stats) (0)
+
 static inline int wlan_hdd_create_mib_stats_file(struct hdd_adapter *adapter)
 {
 	return 0;
