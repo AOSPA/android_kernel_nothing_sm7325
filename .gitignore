@@ -146,7 +146,3 @@ x509.genkey
 
 # Clang's compilation database file
 /compile_commands.json
-
-# vendor device tree directories
-arch/arm64/boot/dts/vendor
-arch/arm/boot/dts/vendor
