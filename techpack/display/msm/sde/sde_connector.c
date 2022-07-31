@@ -23,6 +23,8 @@
 
 #define BL_NODE_NAME_SIZE 32
 #define HDR10_PLUS_VSIF_TYPE_CODE      0x81
+int rm692e5_hbm_flag = 0;
+extern int rm692e5_aod_flag;
 
 /* Autorefresh will occur after FRAME_CNT frames. Large values are unlikely */
 #define AUTOREFRESH_MAX_FRAME_CNT 6
@@ -123,6 +125,11 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 	/* map UI brightness into driver backlight level with rounding */
 	bl_lvl = mult_frac(brightness, display->panel->bl_config.bl_max_level,
 			display->panel->bl_config.brightness_max_level);
+
+	/*if enable hbm_mode, set brightness to HBM brightness*/
+	if (rm692e5_hbm_flag) {
+		bl_lvl = display->panel->bl_config.bl_hbm_level;
+	}
 
 	if (!bl_lvl && brightness)
 		bl_lvl = 1;
@@ -2894,12 +2901,55 @@ static ssize_t twm_enable_show(struct device *device,
 	return scnprintf(buf, PAGE_SIZE, "%d\n", sde_conn->twm_en);
 }
 
+static ssize_t hbm_mode_store(struct device *device,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc = 0;
+	unsigned long hbm_mode;
+	struct sde_connector *sde_conn;
+	struct drm_connector *conn;
+	struct dsi_display *dsi_display;
+
+	conn = dev_get_drvdata(device);
+	sde_conn = to_sde_connector(conn);
+	dsi_display = (struct dsi_display *) sde_conn->display;
+
+	rc = kstrtoul(buf, 0, &hbm_mode);
+	if (rc)
+		return rc;
+
+	if (hbm_mode) {
+		if (rm692e5_aod_flag == 1) {
+			dsi_panel_set_nolp(dsi_display->panel);
+		}
+		rm692e5_hbm_flag = 1;
+	}
+	else {
+		if (rm692e5_aod_flag == 1) {
+			dsi_panel_set_lp1(dsi_display->panel);
+		}
+		rm692e5_hbm_flag = 0;
+	}
+
+	sde_backlight_device_update_status(sde_conn->bl_device);
+
+	return rc ? rc : count;
+}
+
+static ssize_t hbm_mode_show(struct device *device,
+	struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", rm692e5_hbm_flag);
+}
+
 static DEVICE_ATTR_RO(panel_power_state);
 static DEVICE_ATTR_RW(twm_enable);
+static DEVICE_ATTR_RW(hbm_mode);
 
 static struct attribute *sde_connector_dev_attrs[] = {
 	&dev_attr_panel_power_state.attr,
 	&dev_attr_twm_enable.attr,
+	&dev_attr_hbm_mode.attr,
 	NULL
 };
 
