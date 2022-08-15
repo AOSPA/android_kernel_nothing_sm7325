@@ -46,7 +46,7 @@ config QCOM_KGSL_CORESIGHT
 config QCOM_KGSL_IOCOHERENCY_DEFAULT
 	bool "Enable I/O coherency on cached GPU memory by default"
 	depends on QCOM_KGSL
-	default y if ARCH_LAHAINA
+	default y if (ARCH_LAHAINA || ARCH_SHIMA || ARCH_YUPIK)
 	help
 	 Say 'Y' here to enable I/O cache coherency by default on targets that
 	 support hardware I/O coherency. If enabled all cached GPU memory

@@ -14,7 +14,7 @@ ifeq ($(KERNEL_BUILD), 1)
 endif
 
 ifeq ($(KERNEL_BUILD), 0)
-	ifeq ($(CONFIG_ARCH_LAHAINA), y)
+	ifneq ($(filter y, $(CONFIG_ARCH_LAHAINA) $(CONFIG_ARCH_SHIMA) $(CONFIG_ARCH_YUPIK)),)
 		include $(AUDIO_ROOT)/config/lahainaauto.conf
 		INCS    +=  -include $(AUDIO_ROOT)/config/lahainaautoconf.h
 	endif

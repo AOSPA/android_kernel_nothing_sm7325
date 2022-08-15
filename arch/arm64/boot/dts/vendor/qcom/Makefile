@@ -200,31 +200,9 @@ endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 dtbo-$(CONFIG_ARCH_YUPIK) +=    \
-	yupik-rumi-overlay.dtbo \
-	yupik-idp-overlay.dtbo \
-	yupik-atp-overlay.dtbo \
 	yupik-qrd-overlay.dtbo \
 	yupik-qrd-pm7250b-overlay.dtbo \
-	yupik-idps-amoled-overlay.dtbo \
-	yupik-idp-pm7250b-overlay.dtbo \
-	yupik-idp-hsp-overlay.dtbo \
-	yupikp-idp-overlay.dtbo \
-	yupikp-atp-overlay.dtbo \
 	yupikp-qrd-overlay.dtbo \
-	yupikp-idps-amoled-overlay.dtbo \
-	yupikp-idp-hsp-overlay.dtbo \
-	yupik-iot-idp-overlay.dtbo \
-	yupik-iot-idp-pm7250b-overlay.dtbo \
-	yupik-iot-qrd-overlay.dtbo \
-	yupik-iot-hsp-overlay.dtbo \
-	yupik-iot-hsp-pm7250b-overlay.dtbo \
-	yupik-iot-idps-amoled-overlay.dtbo \
-	yupikp-iot-idp-overlay.dtbo \
-	yupikp-iot-idp-pm7250b-overlay.dtbo \
-	yupikp-iot-qrd-overlay.dtbo \
-	yupikp-iot-hsp-overlay.dtbo \
-	yupikp-iot-hsp-pm7250b-overlay.dtbo \
-	yupikp-iot-idps-amoled-overlay.dtbo
 
 
 yupik-rumi-overlay.dtbo-base := yupik.dtb

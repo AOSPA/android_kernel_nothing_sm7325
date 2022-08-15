@@ -2,7 +2,7 @@
 
 # auto-detect subdirs
 ifneq ($(CONFIG_ARCH_QTI_VM), y)
-ifeq ($(CONFIG_ARCH_LAHAINA), y)
+ifneq ($(filter y, $(CONFIG_ARCH_LAHAINA) $(CONFIG_ARCH_SHIMA) $(CONFIG_ARCH_YUPIK)),)
 include $(srctree)/techpack/video/config/konavid.conf
 LINUXINCLUDE    += -include $(srctree)/techpack/video/config/konavidconf.h
 endif
