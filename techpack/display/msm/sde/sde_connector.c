@@ -864,7 +864,12 @@ static void sde_connector_pre_update_fod_hbm(struct sde_connector *c_conn)
 	if (status)
 		sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
 
-	dsi_panel_set_fod_hbm(panel, status);
+	if (status) {
+		rm692e5_hbm_flag = 1;
+	} else {
+		rm692e5_hbm_flag = 0;
+	}
+	sde_backlight_device_update_status(c_conn->bl_device);
 
 	if (!status)
 		sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
