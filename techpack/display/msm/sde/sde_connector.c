@@ -869,6 +869,7 @@ static void sde_connector_pre_update_fod_hbm(struct sde_connector *c_conn)
 	} else {
 		rm692e5_hbm_flag = 0;
 	}
+	panel->fod_hbm_enabled = status;
 	sde_backlight_device_update_status(c_conn->bl_device);
 
 	if (!status)
