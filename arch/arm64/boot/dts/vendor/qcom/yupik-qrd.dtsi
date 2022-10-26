@@ -1007,48 +1007,48 @@
 
 	qcom,Vrms_mv = <1270>;
 	qcom,vmax-mv = <1830>;  /* 9150 / 5 */
-	qcom,lra-period-us = <5880>;
+	qcom,lra-period-us = <4380>;
 	status = "ok";
 
 	effect_0 {
 		/* CLICK */
-		qcom,wf-vmax-mv = <3600>;
-		qcom,wf-pattern-period-us = <5880>;
+		qcom,wf-vmax-mv = <1830>;
+		qcom,wf-pattern-period-us = <4880>;
 	};
 
 	effect_1 {
 		/* DOUBLE_CLICK */
-		qcom,wf-vmax-mv = <3600>;
-		qcom,wf-pattern-period-us = <5880>;
+		qcom,wf-vmax-mv = <1830>;
+		qcom,wf-pattern-period-us = <4380>;
 	};
 
 	effect_2 {
 		/* TICK */
-		qcom,wf-vmax-mv = <3600>;
-		qcom,wf-pattern-period-us = <5880>;
+		qcom,wf-vmax-mv = <1830>;
+		qcom,wf-pattern-period-us = <4380>;
 	};
 
 	effect_3 {
 		/* THUD */
-		qcom,wf-vmax-mv = <3600>;
-		qcom,wf-pattern-period-us = <5880>;
+		qcom,wf-vmax-mv = <1830>;
+		qcom,wf-pattern-period-us = <4880>;
 	};
 
 	effect_4 {
 		/* POP */
-		qcom,wf-vmax-mv = <3600>;
-		qcom,wf-pattern-period-us = <5880>;
+		qcom,wf-vmax-mv = <1830>;
+		qcom,wf-pattern-period-us = <4380>;
 	};
 
 	effect_5 {
 		/* HEAVY CLICK */
-		qcom,wf-vmax-mv = <3600>;
+		qcom,wf-vmax-mv = <1830>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_7 {
 		/* FIFO sample only */
-		qcom,wf-vmax-mv = <3600>;
+		qcom,wf-vmax-mv = <1830>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 };
