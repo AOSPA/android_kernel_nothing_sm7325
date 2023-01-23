@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fd701717_3390c039",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000722
+      },
+      "writtenOn": "2023-01-23T08:52:41Z",
+      "side": 1,
+      "message": "FYI: my 4.19 kernel driver uses msleep(20)",
+      "revId": "eb3e2ed38ce01085364a3ed878ec04ad535b6c86",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
