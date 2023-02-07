@@ -1057,44 +1057,291 @@
 
 	effect_0 {
 		/* CLICK */
-		qcom,wf-vmax-mv = <1830>;
-		qcom,wf-pattern-period-us = <4880>;
+		qcom,wf-vmax-mv = <9078>;
+		qcom,wf-fifo-data = [
+								01 01 01 01 02 03 03 04
+								05 06 08 0a 0c 0f 14 19
+								1e 26 30 3b 48 56 61 69
+								70 75 79 7c 7e 7f 7f 7f
+								7e 7d 7b 79 77 75 73 70
+								6d 6a 67 64 61 5e 5b 58
+								54 51 4e 4a 47 44 41 3e
+								3a 36 33 30 2c 29 25 21
+								1d 19 14 0d 06 00 f6 ea
+								dc cc bd b0 a7 a0 9b 97
+								95 94 95 96 98 9b 9f a3
+								a7 ab b1 b7 bc c2 c8 cf
+								d5 dc e3 e9 f0 f6 fd 03
+								0a 10 17 1d 23 28 2e 33
+								39 3e 43 48 4c 50 54 58
+								5b 5e 62 65 68 6c 70 73
+								75 77 77 76 75 73 70 6d
+								6a 66 61 5c 57 52 4c 46
+								40 3a 32 2c 25 1e 17 0f
+								08 01 fa f3 ec e5 de d7
+								d1 ca c3 be b8 b3 ae a9
+								a4 a0 9c 98 95 93 90 8f
+								8d 8c 8c 8c 8c 8d 8e 90
+								91 94 96 9a 9d a1 a5 aa
+								ae b4 ba bf c5 cb d1 d8
+								de e5 ec f3 fa 00 07 0e
+								15 1b 22 29 2f 35 3b 41
+								47 4c 51 55 59 5c 5f 62
+								64 65 66 65 64 62 5e 59
+								53 4d 47 43 3f 3b 37 33
+								30 2b 28 24 20 1c 18 14
+								0f 0b 05 01 fd f8 f3 ];
+		qcom,wf-fifo-period = <S_PERIOD_F_24KHZ>;
 	};
 
 	effect_1 {
 		/* DOUBLE_CLICK */
-		qcom,wf-vmax-mv = <1830>;
-		qcom,wf-pattern-period-us = <4380>;
+		qcom,wf-vmax-mv = <9078>;
+		qcom,wf-fifo-data = [
+								01 01 01 02 02 03 04 04
+								06 07 09 0b 0e 11 16 1b
+								22 2a 34 40 4c 55 5d 63
+								67 69 6b 6c 6c 6b 6a 68
+								66 63 60 5d 5a 56 52 4e
+								4a 46 41 3c 38 34 2f 2a
+								26 22 1e 19 15 11 0d 08
+								04 ff fa f5 ef e9 e2 d8
+								cf c3 b6 ab a2 9d 99 97
+								96 97 99 9c a0 a4 a9 af
+								b5 bc c3 cb d2 da e3 eb
+								f3 fc 03 0b 14 1d 25 2c
+								34 3b 43 4a 50 56 5c 61
+								66 6b 6e 72 75 78 7a 7c
+								7d 7e 7f 7e 7d 7a 78 74
+								71 6c 67 61 5b 54 4e 47
+								3f 37 2f 27 1e 15 0d 04
+								fc f4 ec e3 db d3 cb c4
+								bd b7 b1 ac a7 a4 a1 9f
+								9e 9e a1 a4 aa b2 bc c8
+								d2 da e2 e9 ee f3 f8 fd
+								00 04 09 0d 12 16 1a 1e
+								22 27 2b 30 34 38 3d 41
+								45 4a 4e 52 55 59 5d 5f
+								62 64 66 67 68 68 67 64
+								62 5e 58 50 45 39 2e 25
+								1e 18 14 10 0d 0b 09 08
+								06 06 05 04 04 04 03 03
+								03 03 03 03 02 02 02 02
+								02 02 02 02 02 02 02 02
+								02 02 02 02 02 02 02 02
+								02 02 02 02 02 02 01 01
+								01 01 01 01 01 01 01 01
+								01 01 01 01 01 01 00 00
+								00 00 00 00 00 00 00 00
+								00 00 00 00 00 00 00 00
+								00 00 00 00 00 00 00 00
+								00 00 00 ];
+		qcom,wf-fifo-period = <S_PERIOD_F_24KHZ>;
 	};
 
 	effect_2 {
 		/* TICK */
-		qcom,wf-vmax-mv = <1830>;
-		qcom,wf-pattern-period-us = <4380>;
+		qcom,wf-vmax-mv = <9078>;
+		qcom,wf-fifo-data = [
+								01 01 01 02 02 03 03 04
+								05 06 08 0a 0d 10 14 19
+								1e 26 2e 34 39 3d 41 44
+								46 48 4a 4b 4d 4e 4f 50
+								51 52 53 54 55 56 57 58
+								59 5a 5b 5c 5d 5e 5f 60
+								61 62 63 64 65 66 68 69
+								6a 6c 6d 6e 6f 70 71 72
+								73 74 75 76 77 78 79 7a
+								7b 7c 7c 7d 7e 7e 7f 7f
+								7f 7f 7f 7f 7e 7d 7c 7a
+								78 75 72 6d 68 60 58 4c
+								3f 34 2b 23 1d 18 12 0e
+								0b 08 05 03 00 ff fd fb
+								f9 f6 f3 f1 ef ed ea e8
+								e5 e3 e1 de dc d9 d6 d4
+								d1 ce cc c9 c6 c2 c0 bd
+								ba b7 b5 b2 af ad aa a7
+								a4 a2 9f 9d 9a 98 96 94
+								91 8f 8e 8c 8a 88 87 86
+								85 84 83 82 81 81 81 81
+								82 83 85 89 8d 91 96 9c
+								a1 a6 a9 ad af b2 b4 b7
+								b9 bb bd bf c1 c4 c6 c8
+								cb cd d0 d3 d5 d8 db de
+								e1 e4 e7 ea ed f0 f4 f7
+								fb fe 01 04 07 0b 0f 12
+								15 19 1c 1f 22 26 29 2c
+								2f 32 35 39 3c 3e 41 44
+								46 48 4b 4d 4f 51 53 55
+								57 59 5b 5c 5e 60 61 63
+								65 ];
+		qcom,wf-fifo-period = <S_PERIOD_F_24KHZ>;
 	};
 
 	effect_3 {
 		/* THUD */
-		qcom,wf-vmax-mv = <1830>;
-		qcom,wf-pattern-period-us = <4880>;
+		qcom,wf-vmax-mv = <6400>;
+		qcom,wf-fifo-data = [
+								01 01 01 02 02 03 03 04
+								05 07 09 0b 0d 10 15 1a
+								20 28 32 3e 4a 53 5b 62
+								67 6b 6e 70 72 73 74 75
+								76 76 76 76 76 75 75 74
+								74 73 72 72 71 70 6f 6e
+								6e 6d 6c 6b 6a 69 68 67
+								66 64 63 62 61 60 5f 5e
+								5d 5c 5a 59 57 55 53 50
+								4c 48 44 3e 37 2e 24 17
+								07 f5 de c9 b8 aa 9f 97
+								90 8b 87 84 82 81 81 81
+								81 81 81 83 84 85 87 89
+								8b 8d 8f 91 93 96 98 9a
+								9d 9f a2 a5 a7 aa ac ae
+								b1 b3 b5 b8 ba bc be c0
+								c3 c5 c7 c9 cb ce d1 d4
+								d7 da de e3 e8 ee f6 ff
+								09 15 20 29 30 35 38 3b
+								3e 3f 40 40 40 3f 3e 3c
+								3a 39 37 34 32 30 2d 2a
+								27 25 22 1e 1b 18 15 11
+								0e 0b 08 05 02 00 fd fa
+								f7 f5 f2 ef ed ea e8 e6
+								e4 e2 e0 df de dd dc dc
+								dc dd df e1 e3 e7 ec f2
+								f9 fe 02 06 0a 0d 0f 12
+								14 16 18 1a 1c 1e 20 22
+								24 26 28 2b 2d 30 32 34
+								37 39 3b 3e 40 43 45 47
+								4a 4c 4f 51 53 56 58 5a
+								5c 5e 60 61 63 64 66 01 ];
+		qcom,wf-fifo-period = <S_PERIOD_F_24KHZ>;
 	};
 
 	effect_4 {
 		/* POP */
-		qcom,wf-vmax-mv = <1830>;
-		qcom,wf-pattern-period-us = <4380>;
+		qcom,wf-vmax-mv = <9078>;
+		qcom,wf-fifo-data = [
+								01 01 01 01 02 03 03 04
+								05 06 08 0a 0c 0f 14 19
+								1e 26 30 3b 48 56 61 69
+								70 75 79 7c 7e 7f 7f 7f
+								7e 7d 7b 79 77 75 73 70
+								6d 6a 67 64 61 5e 5b 58
+								54 51 4e 4a 47 44 41 3e
+								3a 36 33 30 2c 29 25 21
+								1d 19 14 0d 06 00 f6 ea
+								dc cc bd b0 a7 a0 9b 97
+								95 94 95 96 98 9b 9f a3
+								a7 ab b1 b7 bc c2 c8 cf
+								d5 dc e3 e9 f0 f6 fd 03
+								0a 10 17 1d 23 28 2e 33
+								39 3e 43 48 4c 50 54 58
+								5b 5e 62 65 68 6c 70 73
+								75 77 77 76 75 73 70 6d
+								6a 66 61 5c 57 52 4c 46
+								40 3a 32 2c 25 1e 17 0f
+								08 01 fa f3 ec e5 de d7
+								d1 ca c3 be b8 b3 ae a9
+								a4 a0 9c 98 95 93 90 8f
+								8d 8c 8c 8c 8c 8d 8e 90
+								91 94 96 9a 9d a1 a5 aa
+								ae b4 ba bf c5 cb d1 d8
+								de e5 ec f3 fa 00 07 0e
+								15 1b 22 29 2f 35 3b 41
+								47 4c 51 55 59 5c 5f 62
+								64 65 66 65 64 62 5e 59
+								53 4d 47 43 3f 3b 37 33
+								30 2b 28 24 20 1c 18 14
+								0f 0b 05 01 fd f8 f3 ];
+		qcom,wf-fifo-period = <S_PERIOD_F_24KHZ>;
 	};
 
 	effect_5 {
 		/* HEAVY CLICK */
-		qcom,wf-vmax-mv = <1830>;
-		qcom,wf-pattern-period-us = <5880>;
+		qcom,wf-vmax-mv = <9078>;
+		qcom,wf-fifo-data = [
+								01 01 01 02 02 03 03 04
+								05 07 09 0b 0d 10 15 1a
+								20 28 32 3e 4a 53 5b 62
+								67 6b 6e 70 72 73 74 75
+								76 76 76 76 76 75 75 74
+								74 73 72 72 71 70 6f 6e
+								6e 6d 6c 6b 6a 69 68 67
+								66 64 63 62 61 60 5f 5e
+								5d 5c 5a 59 57 55 53 50
+								4c 48 44 3e 37 2e 24 17
+								07 f5 de c9 b8 aa 9f 97
+								90 8b 87 84 82 81 81 81
+								81 81 81 83 84 85 87 89
+								8b 8d 8f 91 93 96 98 9a
+								9d 9f a2 a5 a7 aa ac ae
+								b1 b3 b5 b8 ba bc be c0
+								c3 c5 c7 c9 cb ce d1 d4
+								d7 da de e3 e8 ee f6 ff
+								09 15 20 29 30 35 38 3b
+								3e 3f 40 40 40 3f 3e 3c
+								3a 39 37 34 32 30 2d 2a
+								27 25 22 1e 1b 18 15 11
+								0e 0b 08 05 02 00 fd fa
+								f7 f5 f2 ef ed ea e8 e6
+								e4 e2 e0 df de dd dc dc
+								dc dd df e1 e3 e7 ec f2
+								f9 fe 02 06 0a 0d 0f 12
+								14 16 18 1a 1c 1e 20 22
+								24 26 28 2b 2d 30 32 34
+								37 39 3b 3e 40 43 45 47
+								4a 4c 4f 51 53 56 58 5a
+								5c 5e 60 61 63 64 66 01 ];
+		qcom,wf-fifo-period = <S_PERIOD_F_24KHZ>;
 	};
 
 	effect_7 {
 		/* FIFO sample only */
 		qcom,wf-vmax-mv = <1830>;
 		qcom,wf-pattern-period-us = <5880>;
+	};
+
+	effect_21 {
+		/* TEXTURE TICK */
+		qcom,wf-vmax-mv = <9078>;
+		qcom,wf-fifo-data = [
+								00 00 00 01 01 01 02 02
+								03 03 04 05 07 09 0a 0c
+								0d 0e 0f 10 11 11 12 12
+								12 13 13 13 14 14 14 14
+								14 15 15 15 15 16 16 16
+								16 17 17 17 17 18 18 18
+								18 19 19 19 19 1a 1a 1a
+								1a 1b 1b 1c 1c 1c 1c 1d
+								1d 1d 1d 1d 1e 1e 1e 1e
+								1e 1f 1f 1f 1f 1f 1f 1f
+								1f 1f 1e 1e 1e 1d 1c 1b
+								1a 19 17 15 13 10 0d 0a
+								08 06 05 04 03 02 01 01
+								00 00 00 00 ff fe fe fd
+								fd fc fb fb fa fa f9 f8
+								f8 f7 f6 f6 f5 f5 f4 f3
+								f3 f2 f1 f0 f0 ef ee ee
+								ed ec ec eb ea ea e9 e8
+								e8 e7 e7 e6 e5 e5 e4 e4
+								e3 e3 e3 e2 e2 e1 e1 e1
+								e1 e0 e0 e0 e0 e0 e0 e1
+								e1 e2 e3 e4 e5 e7 e8 e9
+								ea eb ec ec ed ed ee ee
+								ef ef f0 f1 f1 f2 f2 f3
+								f3 f4 f5 f5 f6 f7 f7 f8
+								f9 fa fb fc fc fd fe ff
+								00 00 00 01 02 03 04 04
+								05 06 07 08 09 09 0a 0b
+								0c 0c 0d 0e 0f 10 10 11
+								11 12 13 13 14 14 15 15
+								16 16 16 17 17 18 18 19
+								19 1a 1a 1b 1c 1c 1d 1e
+								1e 1e 1e 1e 1e 1e 1e 1e
+								1e 1d 1d 1d 1c 1c 1c 1b
+								1b 1a 1a 19 19 18 18 17
+								16 16 15 15 14 13 ];
+		qcom,wf-fifo-period = <S_PERIOD_F_24KHZ>;
 	};
 };
 
