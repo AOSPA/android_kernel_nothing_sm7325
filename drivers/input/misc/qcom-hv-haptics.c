@@ -5007,7 +5007,7 @@ static int richtap_load_prebake(struct haptics_chip *chip, u8 *data, u32 length)
 	struct haptics_play_info *play = &chip->play;
 	struct custom_fifo_data custom_data = {};
 	struct fifo_cfg *fifo;
-	int rc;
+	int rc, i;
 
 	if (!chip->custom_effect || !chip->custom_effect->fifo)
 		return -ENOMEM;
@@ -5016,7 +5016,9 @@ static int richtap_load_prebake(struct haptics_chip *chip, u8 *data, u32 length)
 	custom_data.play_rate_hz = 24000; //24000;
 	custom_data.data = data;
 
-	//dev_dbg(chip->dev, "aac RichTap data %d length\n", length);
+	dev_dbg(chip->dev, "aac RichTap data %d \n", data);
+	dev_dbg(chip->dev, "aac RichTap data %d length\n", length);
+	dev_dbg(chip->dev, "aac RichTap data %d rate\n", 24000);
 
 	rc = haptics_convert_sample_period(chip, custom_data.play_rate_hz);
 	if (rc < 0) {
@@ -5041,6 +5043,16 @@ static int richtap_load_prebake(struct haptics_chip *chip, u8 *data, u32 length)
 	}
 
 	memcpy(fifo->samples, custom_data.data, custom_data.length);
+
+	printk(KERN_CONT "Copied FIFO data: ");
+	for (i = 0; i < custom_data.length; i++) {
+		printk(KERN_CONT "%u", fifo->samples[i]);
+		if (i < custom_data.length - 1) {
+			printk(KERN_CONT ", ");
+		}
+	}
+	printk(KERN_CONT "\n");
+	dev_dbg(chip->dev, "Custom FIFO data play length: %dus\n", fifo->play_length_us);
 
 	play->effect = chip->custom_effect;
 	play->brake = NULL;
