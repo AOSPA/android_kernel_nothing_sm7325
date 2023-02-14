@@ -4893,6 +4893,10 @@ static int richtap_set_fifo(struct haptics_chip *chip, struct fifo_cfg *fifo)
 	u32 num, fifo_thresh;
 	int rc, available;
 
+	char *str;
+	u32 size, pos;
+	int j;
+
 	if (atomic_read(&status->is_busy) == 1) {
 		dev_err(chip->dev, "FIFO is busy\n");
 		return -EBUSY;
@@ -4929,6 +4933,24 @@ static int richtap_set_fifo(struct haptics_chip *chip, struct fifo_cfg *fifo)
 	if (rc < 0) {
 		dev_err(chip->dev, "write FIFO samples failed, rc=%d\n", rc);
 		return rc;
+	}
+
+	size = fifo->num_s * CHAR_PER_SAMPLE
+					+ CHAR_MSG_HEADER;
+	str = kzalloc(size, GFP_KERNEL);
+	if (str != NULL) {
+		pos = 0;
+		pos += scnprintf(str, size, "%s", "FIFO data: ");
+		for (j = 0; j < fifo->num_s; j++)
+			pos += scnprintf(str + pos, size - pos, "%d ",
+					(s8)fifo->samples[j]);
+
+		dev_dbg(chip->dev, "%s\n", str);
+		kfree(str);
+		dev_dbg(chip->dev, "FIFO data play rate: %s\n",
+				period_str[fifo->period_per_s]);
+		dev_dbg(chip->dev, "FIFO data play length: %dus\n",
+				fifo->play_length_us);
 	}
 
 	//dev_dbg(chip->dev, "aac Richtap set busy to 1\n");
