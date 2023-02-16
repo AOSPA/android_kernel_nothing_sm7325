@@ -89,7 +89,6 @@
 							02 01 00  ];
 				qcom,wf-fifo-period = <S_PERIOD_F_8KHZ>;
 				qcom,wf-brake-disable;
-				qcom,wf-auto-res-disable;
 			};
 
 			effect_1 {
@@ -111,7 +110,6 @@
 							02 01 00  ];
 				qcom,wf-fifo-period = <S_PERIOD_F_8KHZ>;
 				qcom,wf-brake-disable;
-				qcom,wf-auto-res-disable;
 			};
 
 			effect_2 {
@@ -133,7 +131,6 @@
 							02 01 00  ];
 				qcom,wf-fifo-period = <S_PERIOD_F_8KHZ>;
 				qcom,wf-brake-disable;
-				qcom,wf-auto-res-disable;
 			};
 
 			effect_3 {
@@ -155,7 +152,6 @@
 							02 01 00  ];
 				qcom,wf-fifo-period = <S_PERIOD_F_8KHZ>;
 				qcom,wf-brake-disable;
-				qcom,wf-auto-res-disable;
 			};
 
 			effect_4 {
@@ -177,7 +173,6 @@
 							02 01 00  ];
 				qcom,wf-fifo-period = <S_PERIOD_F_8KHZ>;
 				qcom,wf-brake-disable;
-				qcom,wf-auto-res-disable;
 			};
 
 			effect_5 {
@@ -199,7 +194,6 @@
 							02 01 00  ];
 				qcom,wf-fifo-period = <S_PERIOD_F_8KHZ>;
 				qcom,wf-brake-disable;
-				qcom,wf-auto-res-disable;
 			};
 
 			effect_7 {
@@ -243,7 +237,6 @@
 							02 01 00  ];
 				qcom,wf-fifo-period = <S_PERIOD_F_8KHZ>;
 				qcom,wf-brake-disable;
-				qcom,wf-auto-res-disable;
 			};
 		};
 
