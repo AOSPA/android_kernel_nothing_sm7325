@@ -542,15 +542,12 @@ static int dsi_panel_wled_register(struct dsi_panel *panel,
 	return 0;
 }
 
-extern int current_refresh_rate;
 static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
 {
 	int rc = 0;
-	int i = 0;
 	unsigned long mode_flags = 0;
 	struct mipi_dsi_device *dsi = NULL;
-	u32 timeout_cnt = (current_refresh_rate == 120) ? 4 : 8;
 
 	if (!panel || (bl_lvl > 0xffff)) {
 		DSI_ERR("invalid params\n");
@@ -565,18 +562,6 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 
 	if (panel->bl_config.bl_inverted_dbv)
 		bl_lvl = (((bl_lvl & 0xff) << 8) | (bl_lvl >> 8));
-
-	/*send modify brightness cmd only when TE pin high-"delay 1ms"-low when panel-ic is rm692e5*/
-	/*WAITING_FOR_TE_MAX_TIMES is max times when refresh is 60hz*/
-	if (!strcmp("rm692e5 amoled fhd+ 120hz cmd mode dsi visionox panel", panel->name)) {
-		for (i = 0; i < timeout_cnt; i++) {
-			if (gpio_get_value(panel->bl_config.te_gpio)) {
-				usleep_range(1000, 1100);
-			} else {
-				break;
-			}
-		}
-	}
 
 	rc = mipi_dsi_dcs_set_display_brightness(dsi, bl_lvl);
 	if (rc < 0)
@@ -3767,7 +3752,7 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 		goto error;
 	}
 
-	panel->power_mode = SDE_MODE_DPMS_OFF;
+	panel->power_mode = SDE_MODE_DPMS_ON;
 	drm_panel_init(&panel->drm_panel);
 	panel->drm_panel.dev = &panel->mipi_device.dev;
 	panel->mipi_device.dev.of_node = of_node;
@@ -4439,6 +4424,8 @@ error:
 	return rc;
 }
 
+extern int finger_hbm_flag;
+
 int dsi_panel_set_lp1(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -4467,6 +4454,11 @@ int dsi_panel_set_lp1(struct dsi_panel *panel)
 	if (rc)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_LP1 cmd, rc=%d\n",
 		       panel->name, rc);
+
+	if (finger_hbm_flag == 1) {
+		finger_hbm_flag = 0;
+	}
+
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4489,6 +4481,11 @@ int dsi_panel_set_lp2(struct dsi_panel *panel)
 	if (rc)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_LP2 cmd, rc=%d\n",
 		       panel->name, rc);
+
+	if (finger_hbm_flag == 1) {
+		finger_hbm_flag = 0;
+	}
+
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4951,6 +4948,10 @@ int dsi_panel_disable(struct dsi_panel *panel)
 	}
 	panel->panel_initialized = false;
 	panel->power_mode = SDE_MODE_DPMS_OFF;
+
+	if (finger_hbm_flag == 1) {
+		finger_hbm_flag = 0;
+	}
 
 	mutex_unlock(&panel->panel_lock);
 	return rc;
