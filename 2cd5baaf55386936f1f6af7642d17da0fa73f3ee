@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c97519ad_40bac47b",
+        "filename": "techpack/display/msm/sde/sde_connector.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 946,
+      "author": {
+        "id": 1000876
+      },
+      "writtenOn": "2023-04-02T21:31:34Z",
+      "side": 1,
+      "message": "these also needs to updated for finger_hbm_flag",
+      "revId": "2cd5baaf55386936f1f6af7642d17da0fa73f3ee",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
