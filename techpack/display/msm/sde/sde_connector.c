@@ -20,10 +20,12 @@
 #include "sde_vm.h"
 #include <drm/drm_probe_helper.h>
 
+#include "sde_trace.h"
+
 #define BL_NODE_NAME_SIZE 32
 #define HDR10_PLUS_VSIF_TYPE_CODE      0x81
-int rm692e5_hbm_flag = 0;
-extern int rm692e5_aod_flag;
+int finger_hbm_flag = 0;
+int hbm_mode_flag = 0;
 
 /* Autorefresh will occur after FRAME_CNT frames. Large values are unlikely */
 #define AUTOREFRESH_MAX_FRAME_CNT 6
@@ -128,7 +130,8 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 	display->panel->bl_config.real_bl_level = bl_lvl;
 
 	/*if enable hbm_mode, set brightness to HBM brightness*/
-	if (rm692e5_hbm_flag) {
+	if (finger_hbm_flag || hbm_mode_flag) {
+		SDE_ERROR("update hbm brightness\n");
 		bl_lvl = display->panel->bl_config.bl_hbm_level;
 	}
 
@@ -825,6 +828,70 @@ static int _sde_connector_update_dirty_properties(
 	return 0;
 }
 
+static int _sde_connector_update_finger_hbm_status(
+				struct drm_connector *connector)
+{
+	struct sde_connector *c_conn;
+	struct sde_connector_state *c_state;
+	struct dsi_display * display;
+
+	if (!connector) {
+		SDE_ERROR("invalid argument\n");
+		return -EINVAL;
+	}
+
+	c_conn = to_sde_connector(connector);
+	c_state = to_sde_connector_state(connector->state);
+
+	display = (struct dsi_display *) c_conn->display;
+	if (!display || !display->panel) {
+		SDE_ERROR("Invalid params(s) dsi_display %pK, panel %pK\n",
+					display, ((display) ? display->panel : NULL));
+		return -EINVAL;
+	}
+
+	if ((!c_conn->fingerlayer_dirty) && (finger_hbm_flag == c_conn->finger_flag)) {
+		return 0;
+	}
+
+	if (display->panel->power_mode == SDE_MODE_DPMS_OFF) {
+		SDE_ERROR("panel in power off\n");
+		return 0;
+	}
+
+	SDE_ATRACE_BEGIN("_sde_connector_update_finger_hbm_statuss");
+	finger_hbm_flag = c_conn->finger_flag;
+	if (finger_hbm_flag) {
+		SDE_ERROR("open hbm");
+		if ((c_conn->lp_mode == SDE_MODE_DPMS_LP1) ||
+			(c_conn->lp_mode == SDE_MODE_DPMS_LP2)) {
+			mutex_lock(&c_conn->lock);
+			c_conn->ops.set_power(connector, SDE_MODE_DPMS_ON, display);
+			mutex_unlock(&c_conn->lock);
+			c_conn->last_panel_power_mode = SDE_MODE_DPMS_ON;
+		}
+		sde_backlight_device_update_status(c_conn->bl_device);
+		/*wait for VBLANK */
+		sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
+	} else {
+		SDE_ERROR("close hbm");
+		sde_backlight_device_update_status(c_conn->bl_device);
+		/*wait for VBLANK */
+		sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
+		if ((c_conn->lp_mode == SDE_MODE_DPMS_LP1) ||
+			(c_conn->lp_mode == SDE_MODE_DPMS_LP2)) {
+			mutex_lock(&c_conn->lock);
+			c_conn->ops.set_power(connector, c_conn->lp_mode, display);
+			mutex_unlock(&c_conn->lock);
+			c_conn->last_panel_power_mode = c_conn->lp_mode;
+		}
+	}
+
+	c_conn->fingerlayer_dirty = false;
+	SDE_ATRACE_END("_sde_connector_update_finger_hbm_statuss");
+	return 0;
+}
+
 struct sde_connector_dyn_hdr_metadata *sde_connector_get_dyn_hdr_meta(
 		struct drm_connector *connector)
 {
@@ -922,6 +989,14 @@ int sde_connector_pre_kickoff(struct drm_connector *connector)
 	if (rc) {
 		SDE_EVT32(connector->base.id, SDE_EVTLOG_ERROR);
 		goto end;
+	}
+
+	if (c_conn->connector_type == DRM_MODE_CONNECTOR_DSI) {
+		//only dsi panel need open hbm
+		rc = _sde_connector_update_finger_hbm_status(connector);
+		if (rc) {
+			SDE_ERROR("update hbm status failed\n");
+		}
 	}
 
 	if (!c_conn->ops.pre_kickoff)
@@ -1606,6 +1681,12 @@ static int sde_connector_atomic_set_property(struct drm_connector *connector,
 		msm_property_set_dirty(&c_conn->property_info,
 				&c_state->property_state, idx);
 		break;
+	case CONNECTOR_PROP_FINGER_FLAG:
+		SDE_ERROR_CONN(c_conn, "set finger flag: %d\n", val);
+		if (c_conn->finger_flag != val) {
+			c_conn->finger_flag = val;
+			c_conn->fingerlayer_dirty = true;
+		}
 	default:
 		break;
 	}
@@ -2887,6 +2968,11 @@ static int _sde_connector_install_properties(struct drm_device *dev,
 	c_conn->bl_scale = MAX_BL_SCALE_LEVEL;
 	c_conn->bl_scale_sv = MAX_SV_BL_SCALE_LEVEL;
 
+	msm_property_install_range(&c_conn->property_info, "finger_flag",
+		0x0, 0, 255, 0, CONNECTOR_PROP_FINGER_FLAG);
+	c_conn->fingerlayer_dirty = false;
+	c_conn->finger_flag = 0;
+
 	if (connector_type == DRM_MODE_CONNECTOR_DisplayPort)
 		msm_property_install_range(&c_conn->property_info,
 			"supported_colorspaces",
@@ -2964,40 +3050,38 @@ static ssize_t hbm_mode_store(struct device *device,
 {
 	int rc = 0;
 	unsigned long hbm_mode;
-	struct sde_connector *sde_conn;
 	struct drm_connector *conn;
-	struct dsi_display *dsi_display;
+	struct sde_connector *sde_conn;
 
 	conn = dev_get_drvdata(device);
+	if (!conn) {
+		SDE_ERROR("invalid argument\n");
+		return count;
+	}
 	sde_conn = to_sde_connector(conn);
-	dsi_display = (struct dsi_display *) sde_conn->display;
+	if(sde_conn->connector_type != DRM_MODE_CONNECTOR_DSI) {
+		SDE_ERROR("invalid argument\n");
+		return count;
+	}
 
 	rc = kstrtoul(buf, 0, &hbm_mode);
 	if (rc)
 		return rc;
 
-	if (hbm_mode) {
-		if (rm692e5_aod_flag == 1) {
-			dsi_panel_set_nolp(dsi_display->panel);
-		}
-		rm692e5_hbm_flag = 1;
-	}
-	else {
-		if (rm692e5_aod_flag == 1) {
-			dsi_panel_set_lp1(dsi_display->panel);
-		}
-		rm692e5_hbm_flag = 0;
-	}
+	if (hbm_mode)
+		hbm_mode_flag = 1;
+	else
+		hbm_mode_flag = 0;
 
 	sde_backlight_device_update_status(sde_conn->bl_device);
 
-	return rc ? rc : count;
+	return count;
 }
 
 static ssize_t hbm_mode_show(struct device *device,
 	struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", rm692e5_hbm_flag);
+	return sprintf(buf, "%d\n", hbm_mode_flag);
 }
 
 static ssize_t tx_cmd_store(struct device *device,
