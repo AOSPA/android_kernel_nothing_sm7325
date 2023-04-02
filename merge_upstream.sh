@@ -5,7 +5,7 @@ git pull msm-5.4 $1
 
 # Techpacks
 git subtree pull --prefix=techpack/audio audio $1
-git subtree pull --prefix=techpack/camera camera $1
+#git subtree pull --prefix=techpack/camera camera $1
 git subtree pull --prefix=techpack/dataipa dataipa $1
 git subtree pull --prefix=techpack/datarmnet datarmnet $1
 git subtree pull --prefix=techpack/datarmnet-ext datarmnet-ext $1
