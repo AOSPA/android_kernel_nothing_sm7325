@@ -831,6 +831,7 @@ static int _sde_connector_update_dirty_properties(
 static int _sde_connector_update_finger_hbm_status(
 				struct drm_connector *connector)
 {
+	bool status;
 	struct sde_connector *c_conn;
 	struct sde_connector_state *c_state;
 	struct dsi_display * display;
@@ -850,7 +851,8 @@ static int _sde_connector_update_finger_hbm_status(
 		return -EINVAL;
 	}
 
-	if ((!c_conn->fingerlayer_dirty) && (finger_hbm_flag == c_conn->finger_flag)) {
+	status = sde_crtc_is_fod_enabled(connector->state->crtc->state);
+	if (status == dsi_panel_get_fod_ui(display->panel)) {
 		return 0;
 	}
 
@@ -860,7 +862,7 @@ static int _sde_connector_update_finger_hbm_status(
 	}
 
 	SDE_ATRACE_BEGIN("_sde_connector_update_finger_hbm_statuss");
-	finger_hbm_flag = c_conn->finger_flag;
+	finger_hbm_flag = status;
 	if (finger_hbm_flag) {
 		SDE_ERROR("open hbm");
 		if ((c_conn->lp_mode == SDE_MODE_DPMS_LP1) ||
@@ -887,7 +889,7 @@ static int _sde_connector_update_finger_hbm_status(
 		}
 	}
 
-	c_conn->fingerlayer_dirty = false;
+	dsi_panel_set_fod_ui(display->panel, finger_hbm_flag);
 	SDE_ATRACE_END("_sde_connector_update_finger_hbm_statuss");
 	return 0;
 }
@@ -1681,12 +1683,6 @@ static int sde_connector_atomic_set_property(struct drm_connector *connector,
 		msm_property_set_dirty(&c_conn->property_info,
 				&c_state->property_state, idx);
 		break;
-	case CONNECTOR_PROP_FINGER_FLAG:
-		SDE_ERROR_CONN(c_conn, "set finger flag: %d\n", val);
-		if (c_conn->finger_flag != val) {
-			c_conn->finger_flag = val;
-			c_conn->fingerlayer_dirty = true;
-		}
 	default:
 		break;
 	}
@@ -2967,11 +2963,6 @@ static int _sde_connector_install_properties(struct drm_device *dev,
 	c_conn->bl_scale_dirty = false;
 	c_conn->bl_scale = MAX_BL_SCALE_LEVEL;
 	c_conn->bl_scale_sv = MAX_SV_BL_SCALE_LEVEL;
-
-	msm_property_install_range(&c_conn->property_info, "finger_flag",
-		0x0, 0, 255, 0, CONNECTOR_PROP_FINGER_FLAG);
-	c_conn->fingerlayer_dirty = false;
-	c_conn->finger_flag = 0;
 
 	if (connector_type == DRM_MODE_CONNECTOR_DisplayPort)
 		msm_property_install_range(&c_conn->property_info,
