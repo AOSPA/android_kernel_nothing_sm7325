@@ -2707,6 +2707,7 @@
 		clock-names = "xo", "alternate";
 
 		qcom,lut-row-size = <4>;
+		qcom,no-accumulative-counter;
 		qcom,skip-enable-check;
 
 		interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
@@ -5283,6 +5284,7 @@
 		qcom,pas-id = <0xf>;
 		qcom,firmware-name = "yupik_ipa_fws";
 		qcom,pil-force-shutdown;
+		qcom,proxy-timeout-ms = <1000>;
 		memory-region = <&pil_ipa_gsi_mem>;
 	};
 
