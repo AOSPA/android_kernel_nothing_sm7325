@@ -856,6 +856,10 @@ static int _sde_connector_update_finger_hbm_status(
 		return 0;
 	}
 
+	if (status && display->panel->cur_mode->timing.refresh_rate >= 120) {
+		sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
+	}
+
 	if (display->panel->power_mode == SDE_MODE_DPMS_OFF) {
 		SDE_ERROR("panel in power off\n");
 		return 0;
