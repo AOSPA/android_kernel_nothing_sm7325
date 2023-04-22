@@ -737,7 +737,6 @@ static int ucsi_dr_swap(struct typec_port *port, enum typec_data_role role)
 	command |= UCSI_SET_UOR_ROLE(role);
 	command |= UCSI_SET_UOR_ACCEPT_ROLE_SWAPS;
 	ret = ucsi_role_cmd(con, command);
-
 	if (ret < 0)
 		goto out_unlock;
 

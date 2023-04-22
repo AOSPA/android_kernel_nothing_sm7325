@@ -1958,7 +1958,8 @@ static void rmap_walk_file(struct page *page, struct rmap_walk_control *rwc,
 		}
 
 		i_mmap_lock_read(mapping);
-        }
+	}
+lookup:
 
 	if (rwc->target_vma) {
 		address = vma_address(page, rwc->target_vma);
@@ -1966,7 +1967,6 @@ static void rmap_walk_file(struct page *page, struct rmap_walk_control *rwc,
 		goto done;
 	}
 
-lookup:
 	vma_interval_tree_foreach(vma, &mapping->i_mmap,
 			pgoff_start, pgoff_end) {
 		unsigned long address = vma_address(page, vma);
