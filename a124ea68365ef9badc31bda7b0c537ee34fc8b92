@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d955c7b8_aff3c9a4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000579
+      },
+      "writtenOn": "2023-06-11T15:21:25Z",
+      "side": 1,
+      "message": "doesnt seem to break anything obvious in NTCam",
+      "revId": "a124ea68365ef9badc31bda7b0c537ee34fc8b92",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
