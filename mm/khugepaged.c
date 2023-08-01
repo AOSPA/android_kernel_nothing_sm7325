@@ -1305,7 +1305,7 @@ static int khugepaged_add_pte_mapped_thp(struct mm_struct *mm,
  * Try to collapse a pte-mapped THP for mm at address haddr.
  *
  * This function checks whether all the PTEs in the PMD are pointing to the
- * right THP. If so, retract the page table so the THP can refault in with
+ * pse_pte_mapped_thpright THP. If so, retract the page table so the THP can refault in with
  * as pmd-mapped.
  */
 void collapse_pte_mapped_thp(struct mm_struct *mm, unsigned long addr)
@@ -1346,7 +1346,6 @@ void collapse_pte_mapped_thp(struct mm_struct *mm, unsigned long addr)
 		goto drop_hpage;
 
 	vm_write_begin(vma);
-
 	/*
 	 * We need to lock the mapping so that from here on, only GUP-fast and
 	 * hardware page walks can access the parts of the page tables that
@@ -1505,6 +1504,7 @@ static void retract_page_tables(struct address_space *mapping, pgoff_t pgoff)
 		 */
 		if (down_write_trylock(&mm->mmap_sem)) {
 			if (!khugepaged_test_exit(mm)) {
+				vm_write_begin(vma);
 				struct mmu_notifier_range range;
 
 				mmu_notifier_range_init(&range,
@@ -1512,7 +1512,6 @@ static void retract_page_tables(struct address_space *mapping, pgoff_t pgoff)
 							NULL, mm, addr,
 							addr + HPAGE_PMD_SIZE);
 				mmu_notifier_invalidate_range_start(&range);
-				vm_write_begin(vma);
 				/* assume page table is clear */
 				_pmd = pmdp_collapse_flush(vma, addr, pmd);
 				vm_write_end(vma);
