@@ -512,6 +512,8 @@ typedef enum {
     WMI_PDEV_SET_TGTR2P_TABLE_CMDID,
     /* WMI cmd to set RF path for PHY */
     WMI_PDEV_SET_RF_PATH_CMDID,
+    /** WSI stats info WMI command */
+    WMI_PDEV_WSI_STATS_INFO_CMDID,
 
 
     /* VDEV (virtual device) specific commands */
@@ -4480,8 +4482,17 @@ typedef struct {
      *      0 - Primary
      *      1 - Secondary
      *      Refer to WMI_RSRC_CFG_FLAGS2_RF_PATH_MODE_GET/SET macros.
+     * Bit 18 - disable_wds_peer_map_unmap_event
+     *      Flag to indicate whether the WDS peer map/unmap event should be
+     *      processed or ignored.
+     *      0 - leave the WDS peer map/unmap event enabled
+     *      1 - disable the WDS peer map/unmap event
+     *      This flag shall only be set if the target has set the
+     *      WMI_SERVICE_DISABLE_WDS_PEER_MAP_UNMAP_EVENT_SUPPORT flag.
+     *      Refer to WMI_RSRC_CFG_FLAGS2_DISABLE_WDS_PEER_MAP_UNMAP_EVENT_GET
+     *      and _SET macros.
      *
-     *  Bits 31:18 - Reserved
+     *  Bits 31:19 - Reserved
      */
     A_UINT32 flags2;
     /** @brief host_service_flags - can be used by Host to indicate
@@ -4946,6 +4957,11 @@ typedef struct {
     WMI_GET_BITS(flags2, 17, 1)
 #define WMI_RSRC_CFG_FLAGS2_RF_PATH_MODE_SET(flags2, value) \
     WMI_SET_BITS(flags2, 17, 1, value)
+
+#define WMI_RSRC_CFG_FLAGS2_DISABLE_WDS_PEER_MAP_UNMAP_EVENT_GET(flags2) \
+    WMI_GET_BITS(flags2, 18, 1)
+#define WMI_RSRC_CFG_FLAGS2_DISABLE_WDS_PEER_MAP_UNMAP_EVENT_SET(flags2, value) \
+    WMI_SET_BITS(flags2, 18, 1, value)
 
 
 #define WMI_RSRC_CFG_HOST_SERVICE_FLAG_NAN_IFACE_SUPPORT_GET(host_service_flags) \
@@ -10557,20 +10573,6 @@ typedef enum {
 
     WMI_CHAN_WIDTH_MAX,
 } wmi_channel_width;
-
-/* channel width switch type */
-typedef enum {
-    WMI_CHAN_WIDTH_SWITCH_TYPE_TXRX   = 0,
-    WMI_CHAN_WIDTH_SWITCH_TYPE_TXONLY = 1,
-
-    WMI_CHAN_WIDTH_SWITCH_TYPE_MAX,
-} wmi_chan_width_switch_type;
-
-#define WMI_VDEV_CHAN_WIDTH_NOTIFY_GET_CHAN_WIDTH(chwidth_notify)              WMI_GET_BITS(chwidth_notify, 0, 8)
-#define WMI_VDEV_CHAN_WIDTH_NOTIFY_SET_CHAN_WIDTH(chwidth_notify, value)       WMI_SET_BITS(chwidth_notify, 0, 8, value)
-
-#define WMI_VDEV_CHAN_WIDTH_NOTIFY_GET_SWITCH_TYPE(chwidth_notify)             WMI_GET_BITS(chwidth_notify, 8, 2)
-#define WMI_VDEV_CHAN_WIDTH_NOTIFY_SET_SWITCH_TYPE(chwidth_notify, value)      WMI_SET_BITS(chwidth_notify, 8, 2, value)
 
 /* Clear stats */
 typedef struct {
@@ -16203,6 +16205,12 @@ typedef enum {
  *  If SW encryption is enabled, key plumbing will not happen in FW.
  */
 #define WMI_UNIFIED_VDEV_START_HW_ENCRYPTION_DISABLED  (1<<4)
+/** Indicates VAP is used for MLO repurpose.
+ *  This Indicates that vap can be brought up as 11ax or 11be and can be
+ *  repurposed based on the above stack on the fly to change from MLO to
+ *  non MLO, currently we support only 11ax and 11be transition.
+ */
+#define WMI_UNIFIED_VDEV_START_MLO_REPURPOSE_VAP (1<<5)
 
 /* BSS color 0-6 */
 #define WMI_HEOPS_COLOR_GET_D2(he_ops) WMI_GET_BITS(he_ops, 0, 6)
@@ -18093,11 +18101,7 @@ typedef enum {
      * Please note incase of STA VDEV only BSS peer gets updated,
      * associated TDLS peer bandwidth won't be impacted.
      *
-     * bit 7:0   the updated bandwidth is specified with
-     *           a wmi_channel_width value
-     * bit 9:8   the updated bandwidth switch type is specified with
-     *           a wmi_chan_width_switch_type value
-     * bit 31:10 reserved
+     * The updated bandwidth is specified with a wmi_channel_width value.
      */
     WMI_VDEV_PARAM_CHWIDTH_WITH_NOTIFY,                   /* 0xBA */
 
@@ -20206,6 +20210,8 @@ typedef struct {
 #define WMI_PEER_SET_TX_POWER                          0x28
 
 #define WMI_PEER_FT_ROAMING_PEER_UPDATE                0x29
+
+#define WMI_PEER_PARAM_DMS_SUPPORT                     0x2A
 
 typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_peer_set_param_cmd_fixed_param */
@@ -23262,6 +23268,8 @@ typedef enum wake_reason_e {
     WOW_REASON_XGAP,
     /* COEX channel avoid event */
     WOW_REASON_COEX_CHAVD,
+    /* vdev repurpose request event */
+    WOW_REASON_VDEV_REPURPOSE,
 
     /* add new WOW_REASON_ defs before this line */
     WOW_REASON_MAX,
@@ -24912,6 +24920,13 @@ typedef enum
      * received in beacon.
      */
     WMI_VENDOR_OUI_ACTION_ENABLE_CTS2SELF_WITH_QOS_NULL = 11,
+
+    /*
+     * Send SMPS frame following OMN frame on VHT conncection if specific
+     * vendor OUI received in beacon.
+     */
+    WMI_VENDOR_OUI_ACTION_SEND_SMPS_FRAME_WITH_OMN = 12,
+
 
     /* Add any action before this line */
     WMI_VENDOR_OUI_ACTION_MAX_ACTION_ID
@@ -36809,6 +36824,7 @@ static INLINE A_UINT8 *wmi_id_to_name(A_UINT32 wmi_command)
         WMI_RETURN_STRING(WMI_MLO_PRIMARY_LINK_PEER_MIGRATION_CMDID);
         WMI_RETURN_STRING(WMI_MLO_LINK_RECOMMENDATION_CMDID);
         WMI_RETURN_STRING(WMI_NAN_OEM_DATA_CMDID);
+        WMI_RETURN_STRING(WMI_PDEV_WSI_STATS_INFO_CMDID);
     }
 
     return (A_UINT8 *) "Invalid WMI cmd";
@@ -38446,6 +38462,8 @@ typedef enum _WMI_ADD_TWT_STATUS_T {
     WMI_ADD_TWT_STATUS_DIALOG_ID_BUSY,      /* FW is in the process of handling this dialog */
     WMI_ADD_TWT_STATUS_BTWT_NOT_ENBABLED,   /* Broadcast TWT is not enabled */
     WMI_ADD_TWT_STATUS_RTWT_NOT_ENBABLED,   /* Restricted TWT is not enabled */
+    WMI_ADD_TWT_STATUS_LINK_SWITCH_IN_PROGRESS, /* Link switch is ongoing */
+    WMI_ADD_TWT_STATUS_UNSUPPORTED_MODE_MLMR,   /* Unsupported in MLMR mode */
 } WMI_ADD_TWT_STATUS_T;
 
 typedef struct {
@@ -44320,6 +44338,10 @@ typedef struct wmi_mlo_link_set_active_resp_event
  * If use_ieee_link_id_bitmap equals 1, ieee_link_id_bitmap[] are valid.
  *     A_UINT32 force_active_ieee_link_id_bitmap[];
  *     A_UINT32 force_inactive_ieee_link_id_bitmap[];
+ *---
+ *  current active ieee link id bitmap & inactive ieee link id bitmap
+ *     A_UINT32 current_active_ieee_link_id_bitmap[];
+ *     A_UINT32 current_inactive_ieee_link_id_bitmap[];
  */
 } wmi_mlo_link_set_active_resp_event_fixed_param;
 
@@ -46381,6 +46403,16 @@ typedef struct {
      */
     A_UINT32 emlsr_pdev_id_map;
 } wmi_aux_dev_capabilities;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+      * WMITLV_TAG_STRUC_wmi_pdev_wsi_stats_info_cmd_fixed_param
+      */
+    A_UINT32 tlv_header;
+    A_UINT32 pdev_id; /* for identifying the MAC */
+    A_UINT32 wsi_ingress_load_info;
+    A_UINT32 wsi_egress_load_info;
+} wmi_pdev_wsi_stats_info_cmd_fixed_param;
 
 
 
