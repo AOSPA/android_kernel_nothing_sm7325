@@ -1874,16 +1874,11 @@ static int _sde_encoder_rc_pre_modeset(struct drm_encoder *drm_enc,
 
 	ret = sde_encoder_wait_for_event(drm_enc, MSM_ENC_TX_COMPLETE);
 	if (ret && ret != -EWOULDBLOCK) {
-		SDE_ERROR_ENC(sde_enc,
-				"wait for commit done returned %d\n",
-				ret);
-		SDE_EVT32(DRMID(drm_enc), sw_event, sde_enc->rc_state,
-				ret, SDE_EVTLOG_ERROR);
+		SDE_ERROR_ENC(sde_enc, "wait for commit done returned %d\n", ret);
+		SDE_EVT32(DRMID(drm_enc), sw_event, sde_enc->rc_state, ret, SDE_EVTLOG_ERROR);
 		ret = -EINVAL;
 		goto end;
 	}
-
-	sde_encoder_irq_control(drm_enc, false);
 
 skip_wait:
 	SDE_EVT32(DRMID(drm_enc), sw_event, sde_enc->rc_state,
@@ -1919,8 +1914,6 @@ static int _sde_encoder_rc_post_modeset(struct drm_encoder *drm_enc,
 		ret = -EINVAL;
 		goto end;
 	}
-
-	sde_encoder_irq_control(drm_enc, true);
 
 	_sde_encoder_update_rsc_client(drm_enc, true);
 
@@ -2624,7 +2617,6 @@ static void _sde_encoder_virt_enable_helper(struct drm_encoder *drm_enc)
 				&sde_enc->cur_master->intf_cfg_v1);
 
 	_sde_encoder_update_vsync_source(sde_enc, &sde_enc->disp_info, false);
-	sde_encoder_control_te(drm_enc, true);
 
 	memset(&sde_enc->prv_conn_roi, 0, sizeof(sde_enc->prv_conn_roi));
 	memset(&sde_enc->cur_conn_roi, 0, sizeof(sde_enc->cur_conn_roi));
@@ -2727,6 +2719,7 @@ void sde_encoder_virt_restore(struct drm_encoder *drm_enc)
 		sde_enc->cur_master->ops.restore(sde_enc->cur_master);
 
 	_sde_encoder_virt_enable_helper(drm_enc);
+	sde_encoder_control_te(drm_enc, true);
 }
 
 static void sde_encoder_off_work(struct kthread_work *work)
@@ -2810,6 +2803,9 @@ static void sde_encoder_virt_enable(struct drm_encoder *drm_enc)
 		return;
 	}
 
+	/* turn off vsync_in to update tear check configuration */
+	sde_encoder_control_te(drm_enc, false);
+
 	memset(&sde_enc->cur_master->intf_cfg_v1, 0,
 			sizeof(sde_enc->cur_master->intf_cfg_v1));
 
@@ -2865,6 +2861,7 @@ static void sde_encoder_virt_enable(struct drm_encoder *drm_enc)
 		sde_enc->cur_master->ops.enable(sde_enc->cur_master);
 
 	_sde_encoder_virt_enable_helper(drm_enc);
+	sde_encoder_control_te(drm_enc, true);
 }
 
 void sde_encoder_virt_reset(struct drm_encoder *drm_enc)
