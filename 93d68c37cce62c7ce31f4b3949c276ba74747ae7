@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ed935983_25ccda5d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000012
+      },
+      "writtenOn": "2023-11-07T15:54:33Z",
+      "side": 1,
+      "message": "/home/jake/pa/kernel/msm-5.4/drivers/gpu/msm/adreno_a6xx_hwsched_hfi.c:636:14: error: expected identifier or \u0027(\u0027\n/home/jake/pa/kernel/msm-5.4/drivers/gpu/msm/adreno_a6xx_hwsched_hfi.c:636:13: error: expected \u0027;\u0027 at end of declaration\n/home/jake/pa/kernel/msm-5.4/drivers/gpu/msm/adreno_a6xx_hwsched_hfi.c:656:8: error: implicit declaration of function \u0027gmu_core_timed_poll_check\u0027 [-Werror,-Wimplicit-function-declaration]\n/home/jake/pa/kernel/msm-5.4/drivers/gpu/msm/adreno_a6xx_hwsched_hfi.c:663:4: error: implicit declaration of function \u0027gmu_core_fault_snapshot\u0027 [-Werror,-Wimplicit-function-declaration]\n/home/jake/pa/kernel/msm-5.4/drivers/gpu/msm/adreno_a6xx_hwsched_hfi.c:669:4: error: implicit declaration of function \u0027gmu_core_fault_snapshot\u0027 [-Werror,-Wimplicit-function-declaration]\n/home/jake/pa/kernel/msm-5.4/drivers/gpu/msm/adreno_a6xx_hwsched_hfi.c:679:10: error: implicit declaration of function \u0027gmu_cntr_register_reply\u0027 [-Werror,-Wimplicit-function-declaration]\n/home/jake/pa/kernel/msm-5.4/drivers/gpu/msm/adreno_a6xx_hwsched_hfi.c:694:5: error: implicit declaration of function \u0027gmu_core_fault_snapshot\u0027 [-Werror,-Wimplicit-function-declaration]",
+      "revId": "93d68c37cce62c7ce31f4b3949c276ba74747ae7",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
