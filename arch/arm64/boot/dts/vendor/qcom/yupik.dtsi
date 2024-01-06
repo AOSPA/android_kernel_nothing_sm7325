@@ -35,7 +35,7 @@
 	#size-cells = <2>;
 
 	chosen {
-		bootargs = "log_buf_len=256K rcupdate.rcu_expedited=1 rcu_nocbs=0-7 kpti=off";
+		bootargs = "log_buf_len=1M rcupdate.rcu_expedited=1 rcu_nocbs=0-7 kpti=off";
 	};
 
 	memory { device_type = "memory"; reg = <0 0 0 0>; };
@@ -2374,6 +2374,12 @@
 		restart_reason@65c {
 			compatible = "qcom,msm-imem-restart_reason";
 			reg = <0x65c 0x4>;
+		};
+
+		restart_info@e0{
+			compatible ="nothing,msm-imem-restart_info";
+			reg = <0xe0 0x64>;
+			info_size = <0x64>;
 		};
 
 		dload_type@1c {
