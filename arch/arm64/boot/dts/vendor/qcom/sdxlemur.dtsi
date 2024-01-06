@@ -458,9 +458,11 @@
 		qcom,firmware-name = "modem";
 		memory-region = <&mpss_adsp_mem>;
 		qcom,pas-id = <4>;
+		qcom,minidump-id = <3>;
 		qcom,smem-id = <421>;
 		qcom,sysmon-id = <0>;
 		qcom,ssctl-instance-id = <0x22>;
+		qcom,complete-ramdump;
 
 		interrupts-extended = <&intc 0 250 1>,
 			<&modem_smp2p_in 0 0>,
@@ -990,6 +992,7 @@
 			qcom,aoss-rst-clr;
 			qcom,aux-clk = <0x11>;
 			qcom,avoid-reboot-in-d3hot;
+			qcom,pcie-bme-deassert-irq;
 
 			qcom,phy-init = <0x1240 0x01 0x0
 				0x100c 0x02 0x0
