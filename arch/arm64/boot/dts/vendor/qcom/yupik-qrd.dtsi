@@ -1334,21 +1334,21 @@
 };
 
 &qupv3_se9_i2c {
-    status = "okay";
-    st21nfc: st21nfc@08 {
-        compatible = "st,st21nfc";
-        reg = <0x08>;
-        interrupt-parent = <&tlmm>;
-        interrupts = <41  0>;
-        reset-gpios = <&tlmm 38 0x00>;
-        irq-gpios = <&tlmm 41 0x00>;
-        // pidle-gpios = <&tlmm 48 0x00>;
-        clkreq-gpios = <&tlmm 39 0x00>;
-        clocks = <&rpmhcc RPMH_LN_BB_CLK2>;
-        clock-names = "nfc_ref_clk";
-        st,clk_pinctrl;
-        status = "disabled";
-    };
+	status = "okay";
+	st21nfc: st21nfc@08 {
+		compatible = "st,st21nfc";
+		reg = <0x08>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <41  0>;
+		reset-gpios = <&tlmm 38 0x00>;
+		irq-gpios = <&tlmm 41 0x00>;
+		// pidle-gpios = <&tlmm 48 0x00>;
+		clkreq-gpios = <&tlmm 39 0x00>;
+		clocks = <&rpmhcc RPMH_LN_BB_CLK2>;
+		clock-names = "nfc_ref_clk";
+		st,clk_pinctrl;
+		status = "disabled";
+	};
 };
 
 &qupv3_se14_spi {
@@ -1380,6 +1380,7 @@
 		reg = <0x35>;
 	};
 };
+
 &tlmm{
 	aw210xx_led_pins {
 		led_gpio_en: led_gpio_en {

@@ -56,6 +56,23 @@
 #define CONFIG_STWLC38_FW
 #define DIVIDE_1000_TIMES			1000
 #define DIVIDE_1000000_TIMES			1000000
+
+enum{
+       BoundT0_HEAD = 1,
+       BoundT1_HEAD = 2,
+       BoundT0_Recovery_HEAD = 3,
+       BoundT1_Recovery_HEAD = 4,
+       T0Ibat_HEAD = 5,
+       T1Ibat_HEAD = 6,
+       Ibat_HEAD = 0,
+};
+int nt_fcc_flag = -1;
+#define CYCLE_COUNT		20
+enum nt_health_chg_ctrol {
+     NT_HEALTH_ENABLE_CHG = 3,
+     NT_HEALTH_DISABLE_CHG = 4,
+};
+
 enum usb_connector_type {
 	USB_CONNECTOR_TYPE_TYPEC,
 	USB_CONNECTOR_TYPE_MICRO_USB,
@@ -99,6 +116,8 @@ enum battery_property_id {
 	BATT_RESISTANCE,
 	BATT_POWER_NOW,
 	BATT_POWER_AVG,
+	BATT_POWER_SYS_SOC,
+	BATT_POWER_BAT_SOC,
 	BATT_PROP_MAX,
 };
 
@@ -142,6 +161,7 @@ enum wireless_property_id {
 	WLS_REVERSE_STATUS,
 	WLS_REVERSE_FOD,
 	WLS_ST38_EN,
+	WLS_CHG_PARAM,
 #endif
 	WLS_PROP_MAX,
 };
@@ -784,7 +804,7 @@ static void nt_update_status_function_work(struct work_struct *work)
 					struct battery_chg_dev, nt_update_status_work.work);
 	int rc;
 	int capacity, vbat, vusbin = 0, vwls = 0,Vinput_present = 0;
-	static int	pre_capacity,Vinput_present_pre;
+	static int	pre_capacity, Vinput_present_pre, count = 0;
 	struct psy_state *pst = NULL;
 
 	if (!bcdev) {
@@ -832,6 +852,11 @@ static void nt_update_status_function_work(struct work_struct *work)
 			pm_wakeup_dev_event(bcdev->dev, 50, true);
 		}
 		pre_capacity = capacity;
+	}
+	count++;
+	if (count > CYCLE_COUNT) {
+		count = 0;
+		pr_info("nt_fcc_flag:%d\n", nt_fcc_flag);
 	}
 
 out:
@@ -2013,6 +2038,9 @@ static ssize_t slowcharge_en_store(struct class *c, struct class_attribute *attr
 
 	pr_info("%s,val:%d", __func__, val);
 
+    if (val == NT_HEALTH_DISABLE_CHG || val == NT_HEALTH_ENABLE_CHG)
+        nt_fcc_flag = val;
+
 	rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_USB],
 				USB_SLOWCHARGE_ENABLE, val);
 	if (rc < 0)
@@ -2204,7 +2232,7 @@ static ssize_t wls_reverse_fod_show(struct class *c, struct class_attribute *att
 }
 static CLASS_ATTR_RO(wls_reverse_fod);
 
-static ssize_t wls_st38_en_show(struct class *c, struct class_attribute *attr,
+static ssize_t wls_en_show(struct class *c, struct class_attribute *attr,
 				char *buf)
 {
 	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
@@ -2219,7 +2247,7 @@ static ssize_t wls_st38_en_show(struct class *c, struct class_attribute *attr,
 	return scnprintf(buf, PAGE_SIZE, "0x%x\n",  pst->prop[WLS_ST38_EN]);
 }
 
-static ssize_t wls_st38_en_store(struct class *c,
+static ssize_t wls_en_store(struct class *c,
 					struct class_attribute *attr,
 					const char *buf, size_t count)
 {
@@ -2240,7 +2268,95 @@ static ssize_t wls_st38_en_store(struct class *c,
 
 	return count;
 }
-static CLASS_ATTR_RW(wls_st38_en);
+static CLASS_ATTR_RW(wls_en);
+
+static ssize_t wls_chg_param_show(struct class *c, struct class_attribute *attr,
+				char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_WLS];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, WLS_ST38_EN);
+	if (rc < 0)
+		return rc;
+
+	return scnprintf(buf, PAGE_SIZE, "0x%x\n",  pst->prop[WLS_ST38_EN]);
+}
+
+static ssize_t wls_chg_param_store(struct class *c,
+					struct class_attribute *attr,
+					const char *buf, size_t count)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	int rc;
+	int T0,T1,T0_R,T1_R,T0_ibat,T1_ibat,defalut_ibat;
+
+	pr_info("%s,buf:%s", __func__, buf);
+
+    rc = sscanf(buf, "%d %d %d %d %d %d %d", &T0,&T1,&T0_R,&T1_R,&T0_ibat,&T1_ibat,&defalut_ibat);
+    T0 = T0 + 10000 * BoundT0_HEAD;
+    T1 = T1 + 10000 * BoundT1_HEAD;
+    T0_R = T0_R + 10000 * BoundT0_Recovery_HEAD;
+    T1_R = T1_R + 10000 * BoundT1_Recovery_HEAD;
+    T0_ibat = T0_ibat + 10000 * T0Ibat_HEAD;
+    T1_ibat = T1_ibat + 10000 * T1Ibat_HEAD;
+    defalut_ibat = defalut_ibat + 10000 * Ibat_HEAD;
+    if (rc == 7) {
+            rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS], WLS_CHG_PARAM, T0);
+            rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS], WLS_CHG_PARAM, T1);
+            rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS], WLS_CHG_PARAM, T0_R);
+            rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS], WLS_CHG_PARAM, T1_R);
+            rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS], WLS_CHG_PARAM, T0_ibat);
+            rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS], WLS_CHG_PARAM, T1_ibat);
+            rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS], WLS_CHG_PARAM, defalut_ibat);
+            pr_info("%d, %d, %d, %d, %d, %d, %d", T0, T1, T0_R, T1_R, T0_ibat, T1_ibat, defalut_ibat);
+    } else {
+        pr_info("%s,param_store fail", __func__);
+    }
+
+    return count;
+}
+static CLASS_ATTR_RW(wls_chg_param);
+
+static ssize_t syssoc_show(struct class *c, struct class_attribute *attr,
+                char *buf)
+{
+    struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+                        battery_class);
+    struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+    int rc;
+
+    rc = read_property_id(bcdev, pst, BATT_POWER_SYS_SOC);
+    if (rc < 0)
+        return rc;
+
+    return scnprintf(buf, PAGE_SIZE, "%d\n",  pst->prop[BATT_POWER_SYS_SOC]);
+}
+
+
+static CLASS_ATTR_RO(syssoc);
+
+static ssize_t batsoc_show(struct class *c, struct class_attribute *attr,
+                char *buf)
+{
+    struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+                        battery_class);
+    struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+    int rc;
+
+    rc = read_property_id(bcdev, pst, BATT_POWER_BAT_SOC);
+    if (rc < 0)
+        return rc;
+
+    return scnprintf(buf, PAGE_SIZE, "%d\n",  pst->prop[BATT_POWER_BAT_SOC]);
+}
+
+
+static CLASS_ATTR_RO(batsoc);
+
 #endif
 
 static struct attribute *battery_class_attrs[] = {
@@ -2271,8 +2387,11 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_wls_st38_data.attr,
 	&class_attr_wls_reverse_status.attr,
 	&class_attr_wls_reverse_fod.attr,
-	&class_attr_wls_st38_en.attr,
+	&class_attr_wls_en.attr,
+	&class_attr_wls_chg_param.attr,
 #endif
+	&class_attr_syssoc.attr,
+	&class_attr_batsoc.attr,
 
 	NULL,
 };
