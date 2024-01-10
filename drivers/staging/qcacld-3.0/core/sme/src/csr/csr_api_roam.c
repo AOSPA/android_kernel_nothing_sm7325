@@ -637,23 +637,19 @@ QDF_STATUS csr_open(struct mac_context *mac)
 	return status;
 }
 
-QDF_STATUS csr_init_chan_list(struct mac_context *mac, uint8_t *alpha2)
+QDF_STATUS csr_init_chan_list(struct mac_context *mac)
 {
 	QDF_STATUS status;
+	uint8_t reg_cc[REG_ALPHA2_LEN + 1];
 
-	mac->scan.countryCodeDefault[0] = alpha2[0];
-	mac->scan.countryCodeDefault[1] = alpha2[1];
-	mac->scan.countryCodeDefault[2] = alpha2[2];
-
-	sme_debug("init time country code %.2s", mac->scan.countryCodeDefault);
+	wlan_reg_read_current_country(mac->psoc, reg_cc);
+	sme_debug("init time country code %.2s", reg_cc);
 
 	mac->scan.domainIdDefault = 0;
 	mac->scan.domainIdCurrent = 0;
 
-	qdf_mem_copy(mac->scan.countryCodeCurrent,
-		     mac->scan.countryCodeDefault, REG_ALPHA2_LEN + 1);
 	qdf_mem_copy(mac->scan.countryCodeElected,
-		     mac->scan.countryCodeDefault, REG_ALPHA2_LEN + 1);
+		     reg_cc, REG_ALPHA2_LEN + 1);
 	status = csr_get_channel_and_power_list(mac);
 
 	return status;
@@ -665,8 +661,6 @@ QDF_STATUS csr_set_channels(struct mac_context *mac,
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	uint8_t index = 0;
 
-	qdf_mem_copy(pParam->Csr11dinfo.countryCode,
-		     mac->scan.countryCodeCurrent, REG_ALPHA2_LEN + 1);
 	for (index = 0; index < mac->scan.base_channels.numChannels;
 	     index++) {
 		pParam->Csr11dinfo.Channels.channel_freq_list[index] =
@@ -2796,8 +2790,7 @@ QDF_STATUS csr_apply_channel_and_power_list(struct mac_context *mac)
 	csr_save_channel_power_for_band(mac, false);
 	csr_save_channel_power_for_band(mac, true);
 	csr_apply_channel_power_info_to_fw(mac,
-					   &mac->scan.base_channels,
-					   mac->scan.countryCodeCurrent);
+					   &mac->scan.base_channels);
 
 	csr_init_operating_classes(mac);
 	return status;
@@ -2829,17 +2822,6 @@ static QDF_STATUS csr_init11d_info(struct mac_context *mac, tCsr11dinfo *ps11din
 	}
 	/* legacy maintenance */
 
-	qdf_mem_copy(mac->scan.countryCodeDefault, ps11dinfo->countryCode,
-		     REG_ALPHA2_LEN + 1);
-
-	/* Tush: at csropen get this initialized with default,
-	 * during csr reset if this already set with some value
-	 * no need initilaize with default again
-	 */
-	if (0 == mac->scan.countryCodeCurrent[0]) {
-		qdf_mem_copy(mac->scan.countryCodeCurrent,
-			     ps11dinfo->countryCode, REG_ALPHA2_LEN + 1);
-	}
 	/* need to add the max power channel list */
 	pChanInfo =
 		qdf_mem_malloc(sizeof(tSirMacChanInfo) *
@@ -2881,9 +2863,7 @@ static QDF_STATUS csr_init11d_info(struct mac_context *mac, tCsr11dinfo *ps11din
 			 */
 			csr_apply_channel_power_info_to_fw(mac,
 							   &mac->scan.
-							   base_channels,
-							   mac->scan.
-							   countryCodeCurrent);
+							   base_channels);
 		}
 	}
 	return status;
@@ -15023,6 +15003,7 @@ QDF_STATUS csr_send_join_req_msg(struct mac_context *mac, uint32_t sessionId,
 {
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	uint8_t acm_mask = 0, uapsd_mask;
+	enum reg_6g_ap_type ap_6g_power_type = REG_INDOOR_AP;
 	uint32_t bss_freq;
 	uint16_t msgLen, ieLen;
 	tSirMacRateSet OpRateSet;
@@ -15054,6 +15035,7 @@ QDF_STATUS csr_send_join_req_msg(struct mac_context *mac, uint32_t sessionId,
 	uint8_t programmed_country[REG_ALPHA2_LEN + 1];
 	enum reg_6g_ap_type power_type_6g;
 	bool ctry_code_match;
+	uint8_t reg_cc[REG_ALPHA2_LEN + 1];
 
 	if (!pSession) {
 		sme_err("session %d not found", sessionId);
@@ -15140,8 +15122,9 @@ QDF_STATUS csr_send_join_req_msg(struct mac_context *mac, uint32_t sessionId,
 		qdf_mem_copy(&csr_join_req->self_mac_addr,
 			     &pSession->self_mac_addr,
 			     sizeof(tSirMacAddr));
+		wlan_reg_read_current_country(mac->psoc, reg_cc);
 		sme_nofl_info("vdev-%d: Connecting to %.*s " QDF_MAC_ADDR_FMT
-			      " rssi: %d freq: %d akm %d cipher: uc %d mc %d, CC: %c%c",
+			      " rssi: %d freq: %d akm %d cipher: uc %d mc %d, CC: %s",
 			      sessionId, csr_join_req->ssId.length,
 			      csr_join_req->ssId.ssId,
 			      QDF_MAC_ADDR_REF(pBssDescription->bssId),
@@ -15149,8 +15132,7 @@ QDF_STATUS csr_send_join_req_msg(struct mac_context *mac, uint32_t sessionId,
 			      pProfile->negotiatedAuthType,
 			      pProfile->negotiatedUCEncryptionType,
 			      pProfile->negotiatedMCEncryptionType,
-			      mac->scan.countryCodeCurrent[0],
-			      mac->scan.countryCodeCurrent[1]);
+			      reg_cc);
 		wlan_rec_conn_info(sessionId, DEBUG_CONN_CONNECTING,
 				   pBssDescription->bssId,
 				   pProfile->negotiatedAuthType,
@@ -15854,16 +15836,21 @@ QDF_STATUS csr_send_join_req_msg(struct mac_context *mac, uint32_t sessionId,
 		else
 			csr_join_req->isQosEnabled = false;
 
+		if (pIes->he_op.oper_info_6g_present) {
+			ap_6g_power_type = pIes->he_op.oper_info_6g.info.reg_info;
+		}
+
 		if (wlan_reg_is_6ghz_chan_freq(pBssDescription->chan_freq)) {
 			if (!pIes->Country.present)
 				sme_debug("Channel is 6G but country IE not present");
 			wlan_reg_read_current_country(mac->psoc,
 						      programmed_country);
 			status = wlan_reg_get_6g_power_type_for_ctry(mac->psoc,
+					mac->pdev,
 					pIes->Country.country,
 					programmed_country, &power_type_6g,
 					&ctry_code_match,
-					pSession->ap_power_type);
+					ap_6g_power_type);
 			if (QDF_IS_STATUS_ERROR(status))
 				break;
 			csr_join_req->ap_power_type_6g = power_type_6g;
@@ -20315,10 +20302,10 @@ static void csr_init_operating_classes(struct mac_context *mac)
 	uint8_t swap = 0;
 	uint8_t numClasses = 0;
 	uint8_t opClasses[REG_MAX_SUPP_OPER_CLASSES] = {0,};
+	uint8_t reg_cc[REG_ALPHA2_LEN + 1];
 
-	sme_debug("Current Country = %c%c",
-		  mac->scan.countryCodeCurrent[0],
-		  mac->scan.countryCodeCurrent[1]);
+	wlan_reg_read_current_country(mac->psoc, reg_cc);
+	sme_debug("Current Country = %s", reg_cc);
 
 	csr_update_op_class_array(mac, opClasses,
 				  &mac->scan.base_channels, "20MHz", &i);
@@ -21310,10 +21297,19 @@ csr_process_roam_sync_callback(struct mac_context *mac_ctx,
 		 * the candidate was not successful.
 		 * Connection to the previous AP is still valid in this
 		 * case. So move to RSO_ENABLED state.
+		 *
+		 * Switch to RSO enabled state only if the current state is
+		 * WLAN_ROAMING_IN_PROG or WLAN_ROAM_SYNCH_IN_PROG.
+		 * This API can be called in internal roam aborts also when
+		 * RSO state is deinit and cause RSO start to be sent in
+		 * disconnected state.
 		 */
-		csr_post_roam_state_change(mac_ctx, session_id,
-					   WLAN_ROAM_RSO_ENABLED,
-					   REASON_ROAM_ABORT);
+		if (MLME_IS_ROAMING_IN_PROG(mac_ctx->psoc, session_id) ||
+		    MLME_IS_ROAM_SYNCH_IN_PROGRESS(mac_ctx->psoc, session_id))
+			csr_post_roam_state_change(mac_ctx, session_id,
+						   WLAN_ROAM_RSO_ENABLED,
+						   REASON_ROAM_ABORT);
+
 		csr_roam_roaming_offload_timer_action(mac_ctx,
 				0, session_id, ROAMING_OFFLOAD_TIMER_STOP);
 		csr_roam_call_callback(mac_ctx, session_id, NULL, 0,
