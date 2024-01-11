@@ -983,7 +983,6 @@ gen_headers_out_arm = [
     "audio/linux/msm_audio_amrnb.h",
     "audio/linux/msm_audio_amrwb.h",
     "audio/linux/msm_audio_amrwbplus.h",
-    "audio/linux/msm_audio_ar.h",
     "audio/linux/msm_audio_ape.h",
     "audio/linux/msm_audio_ar.h",
     "audio/linux/msm_audio_calibration.h",
