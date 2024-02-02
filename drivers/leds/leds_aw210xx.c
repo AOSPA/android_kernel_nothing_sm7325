@@ -1735,6 +1735,24 @@ static ssize_t aw210xx_frame_leds_effect_store(struct device *dev,
         aw210xx_single_led_br_set(aw210xx, 15, frame_brightness[13] * aw210xx->setting_br / 4095);
         aw210xx_single_led_br_set(aw210xx, 8, frame_brightness[14] * aw210xx->setting_br / 4095);
         aw210xx_update(aw210xx);
+    } else if (sscanf(buf, "%d %d %d %d %d",
+            &frame_brightness[0], &frame_brightness[1], &frame_brightness[2], &frame_brightness[3], &frame_brightness[4]) == 5) {
+        aw210xx_single_led_br_set(aw210xx, 7, frame_brightness[0] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 1, frame_brightness[1] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 2, frame_brightness[2] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 3, frame_brightness[2] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 4, frame_brightness[2] * aw210xx->setting_br /  4095);
+        aw210xx_single_led_br_set(aw210xx, 5, frame_brightness[2] * aw210xx->setting_br /  4095);
+        aw210xx_single_led_br_set(aw210xx, 16, frame_brightness[4] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 13, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 11, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 9, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 12, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 10, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 14, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 15, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 8, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_update(aw210xx);
     }
     mutex_unlock(&aw210xx->led_mutex);
     return len;
