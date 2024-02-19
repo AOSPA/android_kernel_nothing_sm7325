@@ -2767,7 +2767,7 @@ static int aw210xx_i2c_probe(struct i2c_client *i2c,
 	struct device_node *np = i2c->dev.of_node;
 	int ret;
 
-	AW_INFO("enter\n");
+	AW_INFO("enter, aw210xx driver version %s\n", AW210XX_DRIVER_VERSION);
 
 	if (!i2c_check_functionality(i2c->adapter, I2C_FUNC_I2C)) {
 		AW_ERR("check_functionality failed\n");
@@ -2898,28 +2898,7 @@ static struct i2c_driver aw210xx_i2c_driver = {
 	.remove = aw210xx_i2c_remove,
 	.id_table = aw210xx_i2c_id,
 };
-
-static int __init aw210xx_i2c_init(void)
-{
-	int ret = 0;
-
-	AW_LOG("enter, aw210xx driver version %s\n", AW210XX_DRIVER_VERSION);
-
-	ret = i2c_add_driver(&aw210xx_i2c_driver);
-	if (ret) {
-		AW_ERR("failed to register aw210xx driver!\n");
-		return ret;
-	}
-
-	return 0;
-}
-module_init(aw210xx_i2c_init);
-
-static void __exit aw210xx_i2c_exit(void)
-{
-	i2c_del_driver(&aw210xx_i2c_driver);
-}
-module_exit(aw210xx_i2c_exit);
+module_i2c_driver(aw210xx_i2c_driver);
 
 MODULE_DESCRIPTION("AW210XX LED Driver");
 MODULE_LICENSE("GPL v2");
