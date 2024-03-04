@@ -1735,6 +1735,18 @@ static ssize_t aw210xx_frame_leds_effect_store(struct device *dev,
         aw210xx_single_led_br_set(aw210xx, 15, frame_brightness[13] * aw210xx->setting_br / 4095);
         aw210xx_single_led_br_set(aw210xx, 8, frame_brightness[14] * aw210xx->setting_br / 4095);
         aw210xx_update(aw210xx);
+    } else if (sscanf(buf, "%d %d %d %d %d %d %d %d",
+            &frame_brightness[0], &frame_brightness[1], &frame_brightness[2], &frame_brightness[3], &frame_brightness[4],
+            &frame_brightness[5], &frame_brightness[6], &frame_brightness[7]) == 8) {
+        aw210xx_single_led_br_set(aw210xx, 13, frame_brightness[0] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 11, frame_brightness[1] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 9, frame_brightness[2] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 12, frame_brightness[3] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 10, frame_brightness[4] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 14, frame_brightness[5] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 15, frame_brightness[6] * aw210xx->setting_br / 4095);
+        aw210xx_single_led_br_set(aw210xx, 8, frame_brightness[7] * aw210xx->setting_br / 4095);
+        aw210xx_update(aw210xx);
     } else if (sscanf(buf, "%d %d %d %d %d",
             &frame_brightness[0], &frame_brightness[1], &frame_brightness[2], &frame_brightness[3], &frame_brightness[4]) == 5) {
         aw210xx_single_led_br_set(aw210xx, 7, frame_brightness[0] * aw210xx->setting_br / 4095);
