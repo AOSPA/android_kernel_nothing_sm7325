@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2014-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1079,7 +1079,7 @@ reg_append_mas_chan_list_for_6g_lpi(struct wlan_regulatory_pdev_priv_obj
 	struct regulatory_channel *master_chan_list_6g_client_lpi;
 	uint8_t i, j;
 
-	if (!pdev_priv_obj->reg_rules.num_of_6g_ap_reg_rules[REG_INDOOR_AP]) {
+	if (!pdev_priv_obj->reg_rules.num_of_6g_client_reg_rules[REG_INDOOR_AP]) {
 		reg_debug("No LPI reg rules");
 		return;
 	}
@@ -1117,7 +1117,7 @@ reg_append_mas_chan_list_for_6g_vlp(struct wlan_regulatory_pdev_priv_obj
 	struct regulatory_channel *master_chan_list_6g_client_vlp;
 	uint8_t i, j;
 
-	if (!pdev_priv_obj->reg_rules.num_of_6g_ap_reg_rules[REG_VERY_LOW_POWER_AP]) {
+	if (!pdev_priv_obj->reg_rules.num_of_6g_client_reg_rules[REG_VERY_LOW_POWER_AP]) {
 		reg_debug("No VLP reg rules");
 		return;
 	}
@@ -1758,9 +1758,8 @@ static void reg_store_regulatory_ext_info_to_socpriv(
 		soc_reg->domain_code_6g_ap[i] =
 			regulat_info->domain_code_6g_ap[i];
 
-		if (soc_reg->domain_code_6g_ap[i])
-			soc_reg->mas_chan_params[phy_id].
-				is_6g_channel_list_populated = true;
+		soc_reg->mas_chan_params[phy_id].
+			is_6g_channel_list_populated = true;
 
 		qdf_mem_copy(soc_reg->domain_code_6g_client[i],
 			     regulat_info->domain_code_6g_client[i],
@@ -2088,6 +2087,11 @@ QDF_STATUS reg_process_master_chan_list_ext(
 	}
 
 	reg_store_regulatory_ext_info_to_socpriv(soc_reg, regulat_info, phy_id);
+
+	if (this_mchan_params->client_type >= REG_MAX_CLIENT_TYPE) {
+		reg_err("6 GHz reg client type invalid");
+		return QDF_STATUS_E_FAILURE;
+	}
 
 	status = reg_fill_master_channels(regulat_info,
 					  &this_mchan_params->reg_rules,
