@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -118,6 +118,8 @@ struct adm_ctl {
 	int tx_port_id;
 	bool hyp_assigned;
 	int fnn_app_type;
+	int fnn_port_id;
+	int fnn_copp_idx;
 	bool is_channel_swapped;
 };
 
@@ -2574,6 +2576,8 @@ static void send_adm_cal_type(int fedai_id, int cal_index, int path, int port_id
 		this_adm.tx_port_id = port_id;
 		this_adm.hyp_assigned = true;
 		this_adm.fnn_app_type = app_type;
+		this_adm.fnn_port_id = port_id;
+		this_adm.fnn_copp_idx = copp_idx;
 		pr_debug("%s: hyp_assign_phys success in tx_port_id 0x%x\n",
 			 __func__, this_adm.tx_port_id);
 	}
@@ -3910,10 +3914,14 @@ void adm_copp_mfc_cfg(int port_id, int copp_idx, int dst_sample_rate)
 		pr_err("%s: unable to get channal map\n", __func__);
 		goto fail_cmd;
 	}
-
-	for (i = 0; i < mfc_cfg.num_channels; i++)
-		mfc_cfg.channel_type[i] =
+	if (mfc_cfg.num_channels <= AUDPROC_MFC_OUT_CHANNELS_MAX) {
+		for (i = 0; i < mfc_cfg.num_channels; i++)
+			mfc_cfg.channel_type[i] =
 			(uint16_t) open.dev_channel_mapping[i];
+	} else {
+ 		pr_err("%s: size of  num_channels is greater than channel type \n", __func__);
+		goto fail_cmd;
+	}
 
 	atomic_set(&this_adm.copp.stat[port_idx][copp_idx], -1);
 
@@ -4368,7 +4376,10 @@ int adm_close(int port_id, int perf_mode, int copp_idx)
 					app_type = audproc_cal_info->app_type;
 				}
 
-				if (result && this_adm.fnn_app_type == app_type) {
+				if (result && ((this_adm.fnn_app_type == app_type) &&
+						(this_adm.fnn_port_id == port_id) &&
+                                               (this_adm.fnn_copp_idx == copp_idx) &&
+						(atomic_read(&this_adm.copp.cnt[port_idx][copp_idx]) == 0))) {
 					pr_debug("%s: use hyp assigned %d, use buffer %d\n",
 						 __func__, this_adm.hyp_assigned,
 						cal_block->buffer_number);
@@ -4439,7 +4450,10 @@ int adm_close(int port_id, int perf_mode, int copp_idx)
 			app_type = audproc_cal_info->app_type;
 		}
 
-		if (result && this_adm.fnn_app_type == app_type) {
+		if (result && ((this_adm.fnn_app_type == app_type) &&
+				(this_adm.fnn_port_id == port_id) &&
+				(this_adm.fnn_copp_idx == copp_idx) &&
+				(atomic_read(&this_adm.copp.cnt[port_idx][copp_idx]) == 0))) {
 			pr_debug("%s: use hyp assigned %d, use buffer %d\n",
 				  __func__, this_adm.hyp_assigned,
 				  cal_block->buffer_number);
@@ -6157,6 +6171,7 @@ int __init adm_init(void)
 	this_adm.tx_port_id = -1;
 	this_adm.hyp_assigned = false;
 	this_adm.fnn_app_type = -1;
+	this_adm.fnn_copp_idx = -1;
 	this_adm.is_channel_swapped = false;
 	init_waitqueue_head(&this_adm.matrix_map_wait);
 	init_waitqueue_head(&this_adm.adm_wait);
