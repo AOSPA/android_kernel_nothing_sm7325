@@ -75,19 +75,6 @@
      */
     #define CONFIG_160MHZ_SUPPORT_UNDEF_WAR
   #endif
-#else
-  /*
-   * For backwards compatibility, if CONFIG_160MHZ_SUPPORT is not defined,
-   * default it to 0, if this is either a host build or a Rome target build.
-   * This maintains the prior behavior for the host and Rome target builds.
-   */
-  #if defined(AR6320) || !defined(ATH_TARGET)
-    /*
-     * Set a flag to indicate that at the end of the file,
-     * CONFIG_160MHZ_SUPPORT should be set to 0.
-     */
-    #define CONFIG_160MHZ_SUPPORT_UNDEF_WAR
-  #endif
 #endif
 
 #ifndef SUPPORT_11AX
@@ -159,6 +146,18 @@ typedef enum {
     MODE_11BE_EHT320 = 30,
     MODE_11BE_EHT20_2G = 31, /* For WIN */
     MODE_11BE_EHT40_2G = 32, /* For WIN */
+#endif
+
+#if defined(SUPPORT_11BN) && SUPPORT_11BN
+    MODE_11BN_UHR20 = 33,
+    MODE_11BN_UHR40 = 34,
+    MODE_11BN_UHR80 = 35,
+    MODE_11BN_UHR80_80 = 36,
+    MODE_11BN_UHR160 = 37,
+    MODE_11BN_UHR160_160 = 38,
+    MODE_11BN_UHR320 = 39,
+    MODE_11BN_UHR20_2G = 40,
+    MODE_11BN_UHR40_2G = 41,
 #endif
 
     /*
@@ -258,9 +257,37 @@ typedef enum {
         ((mode) == MODE_11BE_EHT320)    || \
         ((mode) == MODE_11BE_EHT20_2G)  || \
         ((mode) == MODE_11BE_EHT40_2G))
+#define IS_MODE_EHT_5G_6G(mode) (((mode) == MODE_11BE_EHT20) || \
+        ((mode) == MODE_11BE_EHT40)     || \
+        ((mode) == MODE_11BE_EHT80)     || \
+        ((mode) == MODE_11BE_EHT80_80)  || \
+        ((mode) == MODE_11BE_EHT160)    || \
+        ((mode) == MODE_11BE_EHT160_160)|| \
+        ((mode) == MODE_11BE_EHT320))
 #define IS_MODE_EHT_2G(mode) (((mode) == MODE_11BE_EHT20_2G) || \
         ((mode) == MODE_11BE_EHT40_2G))
 #endif /* SUPPORT_11BE */
+
+#if defined(SUPPORT_11BN) && SUPPORT_11BN
+#define IS_MODE_UHR(mode) (((mode) == MODE_11BN_UHR20) || \
+        ((mode) == MODE_11BN_UHR40)     || \
+        ((mode) == MODE_11BN_UHR80)     || \
+        ((mode) == MODE_11BN_UHR80_80)  || \
+        ((mode) == MODE_11BN_UHR160)    || \
+        ((mode) == MODE_11BN_UHR160_160)|| \
+        ((mode) == MODE_11BN_UHR320)    || \
+        ((mode) == MODE_11BN_UHR20_2G)  || \
+        ((mode) == MODE_11BN_UHR40_2G))
+#define IS_MODE_UHR_5G_6G(mode) (((mode) == MODE_11BN_UHR20) || \
+        ((mode) == MODE_11BN_UHR40)     || \
+        ((mode) == MODE_11BN_UHR80)     || \
+        ((mode) == MODE_11BN_UHR80_80)  || \
+        ((mode) == MODE_11BN_UHR160)    || \
+        ((mode) == MODE_11BN_UHR160_160)|| \
+        ((mode) == MODE_11BN_UHR320))
+#define IS_MODE_UHR_2G(mode) (((mode) == MODE_11BN_UHR20_2G) || \
+        ((mode) == MODE_11BN_UHR40_2G))
+#endif /* SUPPORT_11BN */
 
 #define IS_MODE_VHT_2G(mode) (((mode) == MODE_11AC_VHT20_2G) || \
         ((mode) == MODE_11AC_VHT40_2G) || \
