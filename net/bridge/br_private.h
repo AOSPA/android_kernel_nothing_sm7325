@@ -195,6 +195,9 @@ struct net_bridge_fdb_entry {
 
 	struct net_bridge_fdb_key	key;
 	struct hlist_node		fdb_node;
+	unsigned char			is_local:1,
+							is_static:1;
+
 	unsigned long			flags;
 	unsigned char			offloaded:1;
 
@@ -349,6 +352,7 @@ struct net_bridge {
 		struct rtable		fake_rtable;
 		struct rt6_info		fake_rt6_info;
 	};
+	u32				metrics[RTAX_MAX];
 #endif
 	u16				group_fwd_mask;
 	u16				group_fwd_mask_required;

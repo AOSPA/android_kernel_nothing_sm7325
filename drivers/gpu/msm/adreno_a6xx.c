@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/clk/qcom.h>
@@ -2523,19 +2524,7 @@ int a6xx_perfcounter_update(struct adreno_device *adreno_dev,
 	struct cpu_gpu_lock *lock = ptr;
 	u32 *data = ptr + sizeof(*lock);
 	int i, offset = 0;
-	bool select_reg_present = false;
-
-	for (i = 0; i < lock->list_length >> 1; i++) {
-		if (data[offset] == reg->select) {
-			select_reg_present = true;
-			break;
-		}
-
-		if (data[offset] == A6XX_RBBM_PERFCTR_CNTL)
-			break;
-
-		offset += 2;
-	}
+	u32 pending_pairs = 2; /* No of pairs to add: <select,value> and <cntl,1> */
 
 	if (cpu_gpu_lock(lock)) {
 		cpu_gpu_unlock(lock);
@@ -2547,9 +2536,23 @@ int a6xx_perfcounter_update(struct adreno_device *adreno_dev,
 	 * update it, otherwise append the <select register, value> pair to
 	 * the end of the list.
 	 */
-	if (select_reg_present) {
-		data[offset + 1] = reg->countable;
-		goto update;
+	for (i = 0; i < lock->list_length >> 1; i++) {
+		if (data[offset] == reg->select) {
+			data[offset + 1] = reg->countable;
+			goto update;
+		}
+
+		if (data[offset] == A6XX_RBBM_PERFCTR_CNTL)
+			break;
+
+		offset += 2;
+	}
+
+	/* Ensure there is enough space in the reglist buffer for new pairs */
+	if ((offset + (pending_pairs * 2)) >=
+		(adreno_dev->pwrup_reglist->size / sizeof(u32))) {
+		cpu_gpu_unlock(lock);
+		return -ENOSPC;
 	}
 
 	/*
