@@ -829,7 +829,7 @@ int cam_spi_write_table(struct camera_io_master *client,
 	return rc;
 }
 
-static cam_spi_write_seq_v1(struct camera_io_master *client,
+static int cam_spi_write_seq_v1(struct camera_io_master *client,
 	struct cam_sensor_i2c_reg_setting *write_setting)
 {
 	int i;
@@ -863,7 +863,7 @@ static cam_spi_write_seq_v1(struct camera_io_master *client,
 	return rc;
 }
 
-static cam_spi_write_burst(struct camera_io_master *client,
+static int cam_spi_write_burst(struct camera_io_master *client,
 	struct cam_sensor_i2c_reg_setting *write_setting)
 {
 	int i;
