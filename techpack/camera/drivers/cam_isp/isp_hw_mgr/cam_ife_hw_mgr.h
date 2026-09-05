@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef _CAM_IFE_HW_MGR_H_
@@ -103,6 +104,8 @@ struct cam_ife_hw_mgr_debug {
  * @hw_enabled              Array to indicate active HW
  * @internal_cdm            Indicate whether context uses internal CDM
  * @pf_mid_found            in page fault, mid found for this ctx.
+ * dynamic_rdi_alloc:       is dynamic rdi allocation enabled
+ * dynamic_rdi_mask:        dynamic allocated resources mask*
  */
 struct cam_ife_hw_mgr_ctx {
 	struct list_head                list;
@@ -158,6 +161,8 @@ struct cam_ife_hw_mgr_ctx {
 	bool                            dsp_enabled;
 	bool                            internal_cdm;
 	bool                            pf_mid_found;
+	bool                            dynamic_rdi_alloc;
+	uint32_t                        dynamic_rdi_mask;
 };
 
 /**
@@ -168,6 +173,7 @@ struct cam_ife_hw_mgr_ctx {
  *                         HW manager during the initialization.
  * @ife_devices:           IFE device instances array. This will be filled by
  *                         HW layer during initialization
+ * @wm_cfg_mutex:          mutex for updating the wm configuration in CDM
  * @ctx_mutex:             mutex for the hw context pool
  * @free_ctx_list:         free hw context list
  * @used_ctx_list:         used hw context list
@@ -187,6 +193,7 @@ struct cam_ife_hw_mgr {
 	struct cam_hw_intf            *csid_devices[CAM_IFE_CSID_HW_NUM_MAX];
 	struct cam_isp_hw_intf_data   *ife_devices[CAM_IFE_HW_NUM_MAX];
 	struct cam_soc_reg_map        *cdm_reg_map[CAM_IFE_HW_NUM_MAX];
+	struct mutex                   wm_cfg_mutex[CAM_IFE_HW_NUM_MAX];
 
 	struct mutex                   ctx_mutex;
 	atomic_t                       active_ctx_cnt;

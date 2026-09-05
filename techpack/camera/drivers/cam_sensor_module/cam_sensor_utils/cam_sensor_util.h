@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef _CAM_SENSOR_UTIL_H_
@@ -18,6 +19,7 @@
 #include "cam_soc_util.h"
 #include "cam_debug_util.h"
 #include "cam_sensor_io.h"
+#include "cam_ir_led_dev.h"
 
 #define INVALID_VREG 100
 #define RES_MGR_GPIO_NEED_HOLD   1
@@ -84,4 +86,41 @@ int cam_sensor_bob_pwm_mode_switch(struct cam_hw_soc_info *soc_info,
 	int bob_reg_idx, bool flag);
 
 bool cam_sensor_util_check_gpio_is_shared(struct cam_hw_soc_info *soc_info);
+
+int32_t cam_sensor_handle_random_write(
+	struct cam_cmd_i2c_random_wr *cam_cmd_i2c_random_wr,
+	struct i2c_settings_array *i2c_reg_settings,
+	uint32_t *cmd_length_in_bytes, int32_t *offset,
+	struct list_head **list, uint32_t payload_count);
+
+int32_t cam_sensor_handle_continuous_write(
+	struct cam_cmd_i2c_continuous_wr *cam_cmd_i2c_continuous_wr,
+	struct i2c_settings_array *i2c_reg_settings,
+	uint32_t *cmd_length_in_bytes, int32_t *offset,
+	struct list_head **list, uint32_t payload_count);
+
+int32_t cam_sensor_handle_delay(
+	uint32_t **cmd_buf,
+	uint16_t generic_op_code,
+	struct i2c_settings_array *i2c_reg_settings,
+	uint32_t offset, uint32_t *byte_cnt,
+	struct list_head *list_ptr);
+
+int32_t cam_sensor_handle_poll(
+	uint32_t **cmd_buf,
+	struct i2c_settings_array *i2c_reg_settings,
+	uint32_t *byte_cnt, int32_t *offset,
+	struct list_head **list_ptr);
+
+int32_t cam_sensor_handle_random_read(
+	struct cam_cmd_i2c_random_rd *cmd_i2c_random_rd,
+	struct i2c_settings_array *i2c_reg_settings,
+	uint16_t *cmd_length_in_bytes,
+	int32_t *offset,
+	struct list_head **list,
+	struct cam_buf_io_cfg *io_cfg, uint32_t payload_count);
+
+int cam_config_ircut(struct cam_sensor_power_ctrl_t *ircut_info,
+		struct cam_hw_soc_info *soc_info,
+		bool *is_ircut_gpio_requested);
 #endif /* _CAM_SENSOR_UTIL_H_ */

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
 /*
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023,2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef __UAPI_CAM_SENSOR_H__
@@ -14,6 +15,11 @@
 #define CAM_FLASH_MAX_LED_TRIGGERS 2
 #define MAX_OIS_NAME_SIZE 32
 #define CAM_CSIPHY_SECURE_MODE_ENABLED 1
+#define CAM_IR_LED_SUPPORTED
+#define MAX_LDM_FW_COUNT 3
+#define MAX_LDM_NAME_SIZE 32
+#define MAX_LDM_SUPPORTED 3
+
 /**
  * struct cam_sensor_query_cap - capabilities info for sensor
  *
@@ -27,6 +33,8 @@
  * @ois_slot_id      :  OIS slot id which connected to sensor
  * @flash_slot_id    :  Flash slot id which connected to sensor
  * @csiphy_slot_id   :  CSIphy slot id which connected to sensor
+ * @irled_slot_id    :  IRLED slot id which connected to sensor
+ * @ldm_slot_id      :  Lens driver slot id which connected to sensor
  *
  */
 struct  cam_sensor_query_cap {
@@ -40,6 +48,8 @@ struct  cam_sensor_query_cap {
 	__u32        ois_slot_id;
 	__u32        flash_slot_id;
 	__u32        csiphy_slot_id;
+	__u32        ir_led_slot_id;
+	__u32        ldm_slot_id[MAX_LDM_SUPPORTED];
 } __attribute__((packed));
 
 /**
@@ -207,7 +217,7 @@ struct cam_cmd_power {
  * @ cmd_type        :   Command buffer type
  * @ data_type       :   I2C data type
  * @ addr_type       :   I2C address type
- * @ reserved
+ * @ frequency       :   Frequency setting for reg-data pairs
  */
 struct i2c_rdwr_header {
 	__u32    count;
@@ -215,6 +225,7 @@ struct i2c_rdwr_header {
 	__u8     cmd_type;
 	__u8     data_type;
 	__u8     addr_type;
+	__u32    frequency;
 } __attribute__((packed));
 
 /**
@@ -275,11 +286,14 @@ struct cam_cmd_i2c_random_rd {
  * struct cam_cmd_i2c_continuous_rd - I2C continuous continuous read command
  * @ header          :   header of READ/WRITE I2C command
  * @ reg_addr        :   Register address
- *
+ * @ num_bytes       :   Number of read bytes
+ * @ data_read       :   I2C read command
  */
 struct cam_cmd_i2c_continuous_rd {
 	struct i2c_rdwr_header header;
 	__u32                  reg_addr;
+	__u32                  num_bytes;
+	struct cam_cmd_read    data_read[1];
 } __attribute__((packed));
 
 /**
@@ -349,14 +363,14 @@ struct cam_csiphy_info {
  * @combo_mode                 : Indicates the device mode of operation
  * @cphy_dphy_combo_mode       : Info regarding cphy_dphy_combo mode
  * @csiphy_3phase              : Details whether 3Phase / 2Phase operation
- * @reserve
+ * @mux_mode                   : Indication for Mux mode operation
  *
  */
 struct cam_csiphy_acquire_dev_info {
 	__u32    combo_mode;
 	__u16    cphy_dphy_combo_mode;
 	__u8     csiphy_3phase;
-	__u8     reserve;
+	__u8     mux_mode;
 } __attribute__((packed));
 
 /**
@@ -392,6 +406,20 @@ struct cam_sensor_streamon_dev {
 	__u32    handle_type;
 	__u32    reserved;
 	__u64    info_handle;
+} __attribute__((packed));
+
+/**
+ * struct cam_irled_init : Init command for the irled
+ * @irled_type  :    irled hw type
+ * @reserved
+ * @cmd_type    :    command buffer type
+ */
+
+struct cam_irled_init {
+	__u32    irled_type;
+	__u8     reserved;
+	__u8     cmd_type;
+	__u16    reserved1;
 } __attribute__((packed));
 
 /**
@@ -486,5 +514,129 @@ struct cam_flash_query_cap_info {
 	__u32    max_current_torch[CAM_FLASH_MAX_LED_TRIGGERS];
 	__u32    flash_type;
 } __attribute__ ((packed));
+/**
+ * struct cam_ir_led_query_cap  :  capabilities info for ir_led
+ *
+ * @slot_info           :  Indicates about the slotId or cell Index
+ *
+ */
+
+struct cam_ir_led_query_cap_info {
+       uint32_t    slot_info;
+} __attribute__ ((packed));
+
+/**
+ * struct cam_ir_ledset_on_off : led turn on/off command buffer
+ *
+ * @opcode             :   command buffer opcodes
+ * @cmd_type           :   command buffer operation type
+ * @ir_led_intensity   :   ir led intensity level
+ * @pwm_duty_on_ns     :   PWM duty cycle in ns for IRLED intensity
+ * @pwm_period_ns      :   PWM period in ns
+ * @brightness         :   IRLED brightness step for I2C control
+ *
+ */
+
+ struct cam_ir_led_set_on_off {
+       uint8_t     opcode;
+       uint8_t     cmd_type;
+       uint32_t    ir_led_intensity;
+       uint32_t    pwm_duty_on_ns;
+       uint32_t    pwm_period_ns;
+       uint8_t     brightness;
+} __attribute__((packed));
+
+/**
+ * struct cam_ldm_query_cap  :  capabilities info for lens driver
+ *
+ * @slot_info           :  Indicates about the slotId or cell Index
+ *
+ */
+struct cam_ldm_query_cap {
+	__u32    slot_info;
+	__u32    reserved;
+} __attribute__ ((packed));
+
+/**
+ * struct cam_cmd_lens_driver_info - Contains lens driver slave info
+ *
+ * @slave_addr              :    Lens driver i2c slave address
+ * @i2c_freq_mode           :    i2c frequency mode
+ * @cmd_type                :    Explains type of command
+ * @ldm_fw_flag             :    indicates if fw is present or not
+ * @is_ldm_calib            :    indicates the calibration data is available
+ * @spi_mode                :    SPI mode of communication
+ * @is_always_power_on      :    opcode\
+ * @is_single_byte_txfr     : True if single byte transcation required for SPI
+ * @spi_freq                :    SPI frequency
+ */
+struct cam_cmd_lens_driver_info {
+	__u32                 slave_addr;
+	__u8                  i2c_freq_mode;
+	__u8                  cmd_type;
+	__u8                  ldm_fw_flag;
+	__u8                  is_ldm_calib;
+	__u8                  spi_mode;
+	__u8                  is_always_power_on;
+	__u8                  is_single_byte_txfr;
+	__u8                  reserved;
+	__u32                 spi_freq;
+} __attribute__((packed));
+
+/**
+ * struct cam_cmd_ldm_fw_param - Contains LDM firmware param
+ *
+ * NOTE: if this struct is updated,
+ * please also update version in struct cam_cmd_ldm_fw_info
+ *
+ * @fw_name           :       firmware file name
+ * @fw_start_pos      :       data start position in file
+ * @fw_size           :       firmware size
+ * @fw_len_per_write  :       data length per write in bytes
+ * @fw_addr_type      :       addr type
+ * @fw_data_type      :       data type
+ * @fw_operation      :       type of operation
+ * @isOnlyWritefwData :       Only write data during fw write command
+ * @fw_delayUs        :       delay in cci write
+ * @fw_reg_addr       :       start register addr to write
+ * @fw_init_size      :       size of fw download init settings
+ * @fw_finalize_size  :       size of fw download finalize settings
+ */
+struct cam_cmd_ldm_fw_param {
+	char        fw_name[MAX_LDM_NAME_SIZE];
+	__u32       fw_start_pos;
+	__u32       fw_size;
+	__u32       fw_len_per_write;
+	__u8        fw_addr_type;
+	__u8        fw_data_type;
+	__u8        fw_operation;
+	__u8        isOnlyWritefwData;
+	__u32       fw_delayUs;
+	__u32       fw_reg_addr;
+	__u32       fw_init_size;
+	__u32       fw_finalize_size;
+} __attribute__((packed));
+
+/**
+ * struct cam_cmd_ldm_fw_info - Contains LDM firmware info
+ *
+ * @version         :       version info
+ *                          NOTE: if struct cam_cmd_ldm_fw_param is updated,
+ *                          version here needs to be updated too.
+ * @reserved        :       reserved
+ * @cmd_type        :       Explains type of command
+ * @fw_count        :       firmware count
+ * @endianness      :       endianness combo:
+ *                          bit[3:0] firmware data's endianness
+ *                          bit[7:4] endian type of input parameter to ois driver, say QTime
+ * @fw_param        :       includes firmware parameters
+ */
+struct cam_cmd_ldm_fw_info {
+	__u32                           version;
+	__u8                            reserved;
+	__u8                            cmd_type;
+	__u8                            fw_count;
+	struct cam_cmd_ldm_fw_param     fw_param[MAX_LDM_FW_COUNT];
+} __attribute__((packed));
 
 #endif

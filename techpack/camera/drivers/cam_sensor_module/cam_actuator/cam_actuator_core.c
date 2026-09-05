@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -429,6 +430,7 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 	struct common_header      *cmm_hdr = NULL;
 	struct cam_control        *ioctl_ctrl = NULL;
 	struct cam_packet         *csl_packet = NULL;
+	struct cam_packet         *csl_packet_u = NULL;
 	struct cam_config_dev_cmd config;
 	struct i2c_data_settings  *i2c_data = NULL;
 	struct i2c_settings_array *i2c_reg_settings = NULL;
@@ -467,17 +469,15 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 			"Inval cam_packet strut size: %zu, len_of_buff: %zu",
 			 sizeof(struct cam_packet), len_of_buff);
 		rc = -EINVAL;
-		goto end;
+		goto put_buf;
 	}
 
 	remain_len -= (size_t)config.offset;
-	csl_packet = (struct cam_packet *)
-			(generic_pkt_ptr + (uint32_t)config.offset);
-
-	if (cam_packet_util_validate_packet(csl_packet,
-		remain_len)) {
-		CAM_ERR(CAM_ACTUATOR, "Invalid packet params");
-		rc = -EINVAL;
+	csl_packet_u = (struct cam_packet *)
+		(generic_pkt_ptr + (uint32_t)config.offset);
+	rc = cam_packet_util_copy_pkt_to_kmd(csl_packet_u, &csl_packet, remain_len);
+	if (rc) {
+		CAM_ERR(CAM_ACTUATOR, "Copying packet to KMD failed");
 		goto end;
 	}
 
@@ -505,6 +505,10 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 
 		/* Loop through multiple command buffers */
 		for (i = 0; i < csl_packet->num_cmd_buf; i++) {
+			rc = cam_packet_util_validate_cmd_desc(&cmd_desc[i]);
+			if (rc)
+				return rc;
+
 			total_cmd_buf_in_bytes = cmd_desc[i].length;
 			if (!total_cmd_buf_in_bytes)
 				continue;
@@ -517,6 +521,7 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 			cmd_buf = (uint32_t *)generic_ptr;
 			if (!cmd_buf) {
 				CAM_ERR(CAM_ACTUATOR, "invalid cmd buf");
+				cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
 				rc = -EINVAL;
 				goto end;
 			}
@@ -525,6 +530,7 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 				sizeof(struct common_header)))) {
 				CAM_ERR(CAM_ACTUATOR,
 					"Invalid length for sensor cmd");
+				cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
 				rc = -EINVAL;
 				goto end;
 			}
@@ -541,6 +547,7 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 				if (rc < 0) {
 					CAM_ERR(CAM_ACTUATOR,
 					"Failed to parse slave info: %d", rc);
+					cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
 					goto end;
 				}
 				break;
@@ -556,6 +563,7 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 					CAM_ERR(CAM_ACTUATOR,
 					"Failed:parse power settings: %d",
 					rc);
+					cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
 					goto end;
 				}
 				break;
@@ -576,10 +584,12 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 					CAM_ERR(CAM_ACTUATOR,
 					"Failed:parse init settings: %d",
 					rc);
+					cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
 					goto end;
 				}
 				break;
 			}
+			cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
 		}
 
 		if (a_ctrl->cam_act_state == CAM_ACTUATOR_ACQUIRE) {
@@ -764,6 +774,9 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 	}
 
 end:
+	cam_common_mem_free(csl_packet);
+put_buf:
+	cam_mem_put_cpu_buf(config.packet_handle);
 	return rc;
 }
 

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/device.h>
@@ -1541,8 +1543,9 @@ int ipa3_ipv6ct_init_cmd(
 		return -EPERM;
 	}
 
-	if (init->table_entries == 0) {
-		IPAERR_RL("Table entries is zero\n");
+	if (init->table_entries == 0 ||
+		init->table_entries == U16_MAX) {
+		IPAERR_RL("Table entries is %d\n", init->table_entries);
 		return -EPERM;
 	}
 

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
 /*
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef __UAPI_CAM_ISP_H__
@@ -167,6 +168,9 @@
 
 /* Feature Flag indicators */
 #define CAM_ISP_PARAM_FETCH_SECURITY_MODE  BIT(0)
+
+/* Feature flag indicator for IOT Dynamic RDI Allocation */
+#define CAM_ISP_PARAM_DYNAMIC_RDI_EN       BIT(10)
 
 /* ISP core cfg flag params */
 #define CAM_ISP_PARAM_CORE_CFG_HDR_MUX_SEL BIT(0)
@@ -367,7 +371,11 @@ struct cam_isp_in_port_info {
  *                              PPP is an exception CSID PPP -> IFE PPP
  * @feature_flag:               See the macros defined under feature flag above
  * @ife_res_1:                  payload for future use
- * @ife_res_2:                  payload for future use
+ * @dynamic_rdi_rsrc_mask:      Updated RDI mapping mask when dynamic RDI allocation is enabled
+ *                              LSB 16 bits denote which actual hardware path was acquired
+ *                              MSB 16 bits denote which interface the just-acquired hw interface
+ *                              is mapped to in UMD. Each 2 bits denote a single RDI interface idx,
+ *                              and the value denote the interface that was mapped to.
  * @data:                       payload that contains the output resources
  *
  */
@@ -403,7 +411,7 @@ struct cam_isp_in_port_info_v2 {
 	__u32                           sfe_in_path_type;
 	__u32                           feature_flag;
 	__u32                           ife_res_1;
-	__u32                           ife_res_2;
+	__u32                           dynamic_rdi_rsrc_mask;
 	struct cam_isp_out_port_info_v2 data[1];
 };
 

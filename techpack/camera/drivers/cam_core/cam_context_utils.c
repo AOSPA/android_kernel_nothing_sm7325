@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/debugfs.h>
@@ -18,6 +19,9 @@
 #include "cam_sync_api.h"
 #include "cam_trace.h"
 #include "cam_debug_util.h"
+#include "cam_packet_util.h"
+#include "cam_common_util.h"
+
 
 static uint cam_debug_ctx_req_list;
 module_param(cam_debug_ctx_req_list, uint, 0644);
@@ -268,7 +272,9 @@ int32_t cam_context_config_dev_to_hw(
 	size_t len;
 	struct cam_hw_stream_setttings cfg;
 	uintptr_t packet_addr;
-	struct cam_packet *packet;
+	struct cam_packet *packet_u;
+	struct cam_packet *packet = NULL;
+	size_t remain_len = 0;
 
 	if (!ctx || !cmd) {
 		CAM_ERR(CAM_CTXT, "Invalid input params %pK %pK", ctx, cmd);
@@ -298,8 +304,15 @@ int32_t cam_context_config_dev_to_hw(
 		return rc;
 	}
 
-	packet = (struct cam_packet *) ((uint8_t *)packet_addr +
+	packet_u = (struct cam_packet *) ((uint8_t *)packet_addr +
 		(uint32_t)cmd->offset);
+	remain_len = len - (uint32_t)cmd->offset;
+
+	rc = cam_packet_util_copy_pkt_to_kmd(packet_u, &packet, remain_len);
+	if (rc) {
+		CAM_ERR(CAM_CTXT, "Copying packet to KMD failed");
+		goto put_ref;
+	}
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.packet = packet;
@@ -316,6 +329,10 @@ int32_t cam_context_config_dev_to_hw(
 		rc = -EFAULT;
 	}
 
+	cam_common_mem_free(packet);
+	packet = NULL;
+put_ref:
+	cam_mem_put_cpu_buf((int32_t) cmd->packet_handle);
 	return rc;
 }
 
@@ -377,6 +394,7 @@ int32_t cam_context_prepare_dev_to_hw(struct cam_context *ctx,
 	if ((len < sizeof(struct cam_packet)) ||
 		(cmd->offset >= (len - sizeof(struct cam_packet)))) {
 		CAM_ERR(CAM_CTXT, "Not enough buf");
+		cam_mem_put_cpu_buf((int32_t) cmd->packet_handle);
 		return -EINVAL;
 
 	}
@@ -495,7 +513,7 @@ int32_t cam_context_prepare_dev_to_hw(struct cam_context *ctx,
 				req->in_map_entries[j].sync_id, rc);
 		}
 	}
-
+	cam_mem_put_cpu_buf((int32_t) cmd->packet_handle);
 	return rc;
 put_ref:
 	for (--i; i >= 0; i--) {
@@ -509,6 +527,7 @@ free_req:
 	req->ctx = NULL;
 	spin_unlock(&ctx->lock);
 
+	cam_mem_put_cpu_buf((int32_t) cmd->packet_handle);
 	return rc;
 }
 
@@ -1109,6 +1128,7 @@ static int cam_context_dump_context(struct cam_context *ctx,
 	if (dump_args->offset >= buf_len) {
 		CAM_WARN(CAM_CTXT, "dump buffer overshoot offset %zu len %zu",
 			dump_args->offset, buf_len);
+		cam_mem_put_cpu_buf(dump_args->buf_handle);
 		return -ENOSPC;
 	}
 
@@ -1120,6 +1140,7 @@ static int cam_context_dump_context(struct cam_context *ctx,
 	if (remain_len < min_len) {
 		CAM_WARN(CAM_CTXT, "dump buffer exhaust remain %zu min %u",
 			remain_len, min_len);
+		cam_mem_put_cpu_buf(dump_args->buf_handle);
 		return -ENOSPC;
 	}
 	dst = (uint8_t *)cpu_addr + dump_args->offset;
@@ -1144,7 +1165,8 @@ static int cam_context_dump_context(struct cam_context *ctx,
 	hdr->size = hdr->word_size * (addr - start);
 	dump_args->offset += hdr->size +
 		sizeof(struct cam_context_dump_header);
-	return rc;
+	cam_mem_put_cpu_buf(dump_args->buf_handle);
+	return 0;
 }
 
 int32_t cam_context_dump_dev_to_hw(struct cam_context *ctx,

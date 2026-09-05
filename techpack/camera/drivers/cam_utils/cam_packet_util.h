@@ -60,6 +60,8 @@ int cam_packet_util_get_cmd_mem_addr(int handle, uint32_t **buf_addr,
 int cam_packet_util_validate_packet(struct cam_packet *packet,
 	size_t remain_len);
 
+int cam_packet_util_copy_pkt_to_kmd(struct cam_packet *packet_u,
+	struct cam_packet **packet, size_t remain_len);
 /**
  * cam_packet_util_validate_cmd_desc()
  *

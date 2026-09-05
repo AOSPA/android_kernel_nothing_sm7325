@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef _CAM_CSIPHY_DEV_H_
@@ -262,6 +263,8 @@ struct cam_csiphy_param {
  * @current_data_rate:          Data rate in mbps
  * @csiphy_3phase:              To identify DPHY or CPHY at top level
  * @combo_mode:                 Info regarding combo_mode is enable / disable
+ * @cphy_dphy_combo_mode:       Info regarding CPHY and DPHY combo mode
+ * @mux_mod:                    Info regarding Mux Mode is enable / disable
  * @ops:                        KMD operations
  * @crm_cb:                     Callback API pointers
  * @enable_irq_dump:            Debugfs variable to enable hw IRQ register dump
@@ -295,6 +298,7 @@ struct csiphy_device {
 	uint8_t                        session_max_device_support;
 	uint8_t                        combo_mode;
 	uint8_t                        cphy_dphy_combo_mode;
+	uint8_t                        mux_mode;
 	struct cam_req_mgr_kmd_ops     ops;
 	struct cam_req_mgr_crm_cb     *crm_cb;
 	bool                           enable_irq_dump;

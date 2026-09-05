@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include "cam_sensor_io.h"
@@ -115,6 +116,20 @@ int32_t camera_io_dev_read_seq(struct camera_io_master *io_master_info,
 	return 0;
 }
 
+int32_t camera_io_dev_read_seq_v1(struct camera_io_master *io_master_info,
+	struct cam_sensor_i2c_reg_setting *read_setting)
+{
+	if (io_master_info->master_type == SPI_MASTER) {
+		return cam_spi_read_seq_v1(io_master_info,
+			read_setting);
+	} else {
+		CAM_ERR(CAM_SENSOR, "Invalid Comm. Master:%d",
+			io_master_info->master_type);
+		return -EINVAL;
+	}
+	return 0;
+}
+
 int32_t camera_io_dev_write(struct camera_io_master *io_master_info,
 	struct cam_sensor_i2c_reg_setting *write_setting)
 {
@@ -169,8 +184,13 @@ int32_t camera_io_dev_write_continuous(struct camera_io_master *io_master_info,
 		return cam_qup_i2c_write_continuous_table(io_master_info,
 			write_setting, cam_sensor_i2c_write_flag);
 	} else if (io_master_info->master_type == SPI_MASTER) {
-		return cam_spi_write_table(io_master_info,
-			write_setting);
+		if (io_master_info->spi_client->spi_communication_ver
+			== SPI_COMM_VERSION_1) {
+			return cam_spi_write_continuous_table(io_master_info,
+				write_setting, cam_sensor_i2c_write_flag);
+		} else {
+			return cam_spi_write_table(io_master_info, write_setting);
+		}
 	} else {
 		CAM_ERR(CAM_SENSOR, "Invalid Comm. Master:%d",
 			io_master_info->master_type);

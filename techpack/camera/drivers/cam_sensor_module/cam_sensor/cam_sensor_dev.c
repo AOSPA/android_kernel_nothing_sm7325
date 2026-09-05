@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include "cam_sensor_dev.h"
@@ -215,6 +216,8 @@ static int32_t cam_sensor_driver_i2c_probe(struct i2c_client *client,
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.config_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamon_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamoff_settings.list_head));
+	INIT_LIST_HEAD(&(s_ctrl->i2c_data.poweron_reg_settings.list_head));
+	INIT_LIST_HEAD(&(s_ctrl->i2c_data.poweroff_reg_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.read_settings.list_head));
 
 	for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
@@ -305,6 +308,8 @@ static int cam_sensor_component_bind(struct device *dev,
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.config_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamon_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamoff_settings.list_head));
+	INIT_LIST_HEAD(&(s_ctrl->i2c_data.poweron_reg_settings.list_head));
+	INIT_LIST_HEAD(&(s_ctrl->i2c_data.poweroff_reg_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.read_settings.list_head));
 
 	for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
@@ -408,6 +413,19 @@ static int cam_sensor_driver_i2c_remove(struct i2c_client *client)
 
 static const struct of_device_id cam_sensor_driver_dt_match[] = {
 	{.compatible = "qcom,cam-sensor"},
+	{.compatible = "lt,lt6911gxc"},
+	{.compatible = "lt,lt7911uxc"},
+	{}
+};
+
+static const struct of_device_id cam_sensor_driver_platform_dt_match[] = {
+	{.compatible = "qcom,cam-sensor"},
+	{}
+};
+
+static const struct of_device_id cam_sensor_driver_i2c_dt_match[] = {
+	{.compatible = "lt,lt6911gxc"},
+	{.compatible = "lt,lt7911uxc"},
 	{}
 };
 
@@ -431,7 +449,7 @@ struct platform_driver cam_sensor_platform_driver = {
 	.driver = {
 		.name = "qcom,camera",
 		.owner = THIS_MODULE,
-		.of_match_table = cam_sensor_driver_dt_match,
+		.of_match_table = cam_sensor_driver_platform_dt_match,
 		.suppress_bind_attrs = true,
 	},
 	.remove = cam_sensor_platform_remove,
@@ -448,6 +466,7 @@ static struct i2c_driver cam_sensor_driver_i2c = {
 	.remove = cam_sensor_driver_i2c_remove,
 	.driver = {
 		.name = SENSOR_DRIVER_I2C,
+		.of_match_table = cam_sensor_driver_i2c_dt_match,
 	},
 };
 

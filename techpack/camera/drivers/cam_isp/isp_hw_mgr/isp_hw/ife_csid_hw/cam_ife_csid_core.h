@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef _CAM_IFE_CSID_HW_H_
@@ -435,6 +436,7 @@ struct cam_ife_csid_reg_offset {
  * @hw_dts_version:  HW DTS version
  * @hw_reg_version:  HW Version read from register
  * @csid_max_clk:    maximim csid clock
+ * @phy_num_mask:    number of csiphy hw availibility
  *
  */
 struct cam_ife_csid_hw_info {
@@ -443,6 +445,7 @@ struct cam_ife_csid_hw_info {
 	uint32_t                                hw_reg_version;
 	uint32_t                                csid_max_clk;
 
+	uint32_t                                phy_num_mask;
 };
 
 

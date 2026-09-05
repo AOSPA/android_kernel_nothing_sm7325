@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023,2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef CAMERA_MAIN_H
@@ -8,6 +9,7 @@
 
 #include <linux/platform_device.h>
 #include <linux/component.h>
+#include <linux/i2c.h>
 
 extern struct platform_driver cam_sync_driver;
 extern struct platform_driver cam_smmu_driver;
@@ -41,6 +43,7 @@ extern struct platform_driver cam_ois_platform_driver;
 	IS_REACHABLE(CONFIG_LEDS_QTI_FLASH)
 extern struct platform_driver cam_flash_platform_driver;
 #endif
+extern struct platform_driver cam_ir_led_platform_driver;
 #endif
 #ifdef CONFIG_SPECTRA_ICP
 extern struct platform_driver cam_a5_driver;
@@ -71,6 +74,10 @@ extern struct platform_driver cam_custom_csid_driver;
 extern struct platform_driver custom_driver;
 #endif
 
+#ifdef CONFIG_SPECTRA_SENSOR
+extern struct spi_driver cam_lens_driver_spi_driver;
+extern struct i2c_driver cam_lens_driver_i2c_driver;
+#endif
 /*
  * Drivers to be bound by component framework in this order with
  * CRM as master
@@ -109,6 +116,7 @@ static struct platform_driver *const cam_component_drivers[] = {
 	IS_REACHABLE(CONFIG_LEDS_QTI_FLASH)
 	&cam_flash_platform_driver,
 #endif
+	&cam_ir_led_platform_driver,
 #endif
 #ifdef CONFIG_SPECTRA_ICP
 	&cam_a5_driver,
@@ -137,6 +145,18 @@ static struct platform_driver *const cam_component_drivers[] = {
 	&cam_custom_hw_sub_mod_driver,
 	&cam_custom_csid_driver,
 	&custom_driver,
+#endif
+};
+
+static struct i2c_driver *const cam_component_i2c_drivers[] = {
+#ifdef CONFIG_SPECTRA_SENSOR
+	&cam_lens_driver_i2c_driver,
+#endif
+};
+
+static struct spi_driver *const cam_component_spi_drivers[] = {
+#ifdef CONFIG_SPECTRA_SENSOR
+	&cam_lens_driver_spi_driver,
 #endif
 };
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -350,6 +351,7 @@ int32_t cam_cmd_buf_parser(struct csiphy_device *csiphy_dev,
 	uintptr_t                generic_ptr;
 	uintptr_t                generic_pkt_ptr;
 	struct cam_packet       *csl_packet = NULL;
+	struct cam_packet       *csl_packet_u = NULL;
 	struct cam_cmd_buf_desc *cmd_desc = NULL;
 	uint32_t                *cmd_buf = NULL;
 	struct cam_csiphy_info  *cam_cmd_csiphy_info = NULL;
@@ -379,18 +381,17 @@ int32_t cam_cmd_buf_parser(struct csiphy_device *csiphy_dev,
 			"Inval cam_packet strut size: %zu, len_of_buff: %zu",
 			 sizeof(struct cam_packet), len);
 		rc = -EINVAL;
-		return rc;
+		goto put_buf;
 	}
 
 	remain_len -= (size_t)cfg_dev->offset;
-	csl_packet = (struct cam_packet *)
+	csl_packet_u = (struct cam_packet *)
 		(generic_pkt_ptr + (uint32_t)cfg_dev->offset);
 
-	if (cam_packet_util_validate_packet(csl_packet,
-		remain_len)) {
-		CAM_ERR(CAM_CSIPHY, "Invalid packet params");
-		rc = -EINVAL;
-		return rc;
+	rc = cam_packet_util_copy_pkt_to_kmd(csl_packet_u, &csl_packet, remain_len);
+	if (rc) {
+		CAM_ERR(CAM_CSIPHY, "Copying packet to KMD failed");
+		goto put_buf;
 	}
 
 	if (csl_packet->num_cmd_buf)
@@ -400,13 +401,13 @@ int32_t cam_cmd_buf_parser(struct csiphy_device *csiphy_dev,
 	else {
 		CAM_ERR(CAM_CSIPHY, "num_cmd_buffers = %d", csl_packet->num_cmd_buf);
 		rc = -EINVAL;
-		return rc;
+		goto end;
 	}
 
 	rc = cam_packet_util_validate_cmd_desc(cmd_desc);
 	if (rc) {
 		CAM_ERR(CAM_CSIPHY, "Invalid cmd desc ret: %d", rc);
-		return rc;
+		goto end;
 	}
 
 	rc = cam_mem_get_cpu_buf(cmd_desc->mem_handle,
@@ -414,7 +415,7 @@ int32_t cam_cmd_buf_parser(struct csiphy_device *csiphy_dev,
 	if (rc < 0) {
 		CAM_ERR(CAM_CSIPHY,
 			"Failed to get cmd buf Mem address : %d", rc);
-		return rc;
+		goto end;
 	}
 
 	if ((len < sizeof(struct cam_csiphy_info)) ||
@@ -422,7 +423,8 @@ int32_t cam_cmd_buf_parser(struct csiphy_device *csiphy_dev,
 		CAM_ERR(CAM_CSIPHY,
 			"Not enough buffer provided for cam_cisphy_info");
 		rc = -EINVAL;
-		return rc;
+		cam_mem_put_cpu_buf(cmd_desc->mem_handle);
+		goto end;
 	}
 
 	cmd_buf = (uint32_t *)generic_ptr;
@@ -432,7 +434,9 @@ int32_t cam_cmd_buf_parser(struct csiphy_device *csiphy_dev,
 	index = cam_csiphy_get_instance_offset(csiphy_dev, cfg_dev->dev_handle);
 	if (index < 0 || index  >= csiphy_dev->session_max_device_support) {
 		CAM_ERR(CAM_CSIPHY, "index in invalid: %d", index);
-		return -EINVAL;
+		cam_mem_put_cpu_buf(cmd_desc->mem_handle);
+		rc = -EINVAL;
+		goto end;
 	}
 
 	rc = cam_csiphy_sanitize_lane_cnt(csiphy_dev, index,
@@ -441,7 +445,8 @@ int32_t cam_cmd_buf_parser(struct csiphy_device *csiphy_dev,
 		CAM_ERR(CAM_CSIPHY,
 			"Wrong configuration lane_cnt: %u",
 			cam_cmd_csiphy_info->lane_cnt);
-		return rc;
+		cam_mem_put_cpu_buf(cmd_desc->mem_handle);
+		goto end;
 	}
 
 	csiphy_dev->csiphy_info[index].lane_cnt = cam_cmd_csiphy_info->lane_cnt;
@@ -501,11 +506,19 @@ int32_t cam_cmd_buf_parser(struct csiphy_device *csiphy_dev,
 		csiphy_dev->csiphy_info[index].settle_time,
 		csiphy_dev->csiphy_info[index].data_rate);
 
+
+	cam_mem_put_cpu_buf(cmd_desc->mem_handle);
+end:
+	cam_common_mem_free(csl_packet);
+put_buf:
+	cam_mem_put_cpu_buf(cfg_dev->packet_handle);
 	return rc;
 
 reset_settings:
 	cam_csiphy_reset_phyconfig_param(csiphy_dev, index);
-
+	cam_mem_put_cpu_buf(cfg_dev->packet_handle);
+	cam_mem_put_cpu_buf(cmd_desc->mem_handle);
+	cam_common_mem_free(csl_packet);
 	return rc;
 }
 
@@ -1116,9 +1129,10 @@ int32_t cam_csiphy_core_cfg(void *phy_dev,
 			csiphy_dev->combo_mode);
 		if ((csiphy_dev->csiphy_state == CAM_CSIPHY_START) &&
 			(csiphy_dev->combo_mode == 0) &&
+			(csiphy_dev->mux_mode == 0) &&
 			(csiphy_dev->acquire_count > 0)) {
 			CAM_ERR(CAM_CSIPHY,
-				"NonComboMode does not support multiple acquire: Acquire_count: %d",
+				"NonComboMode or mux mode do not support multiple acquire: Acquire_count: %d",
 				csiphy_dev->acquire_count);
 			rc = -EINVAL;
 			goto release_mutex;
@@ -1143,6 +1157,8 @@ int32_t cam_csiphy_core_cfg(void *phy_dev,
 		}
 
 		csiphy_acq_params.combo_mode = 0;
+		csiphy_acq_params.cphy_dphy_combo_mode = 0;
+		csiphy_acq_params.mux_mode = 0;
 
 		if (copy_from_user(&csiphy_acq_params,
 			u64_to_user_ptr(csiphy_acq_dev.info_handle),
@@ -1171,6 +1187,18 @@ int32_t cam_csiphy_core_cfg(void *phy_dev,
 					CSIPHY_MAX_INSTANCES_PER_PHY - 1;
 		}
 
+		if (csiphy_acq_params.mux_mode == 1) {
+			CAM_DBG(CAM_CSIPHY, "Mux Mode stream detected");
+			csiphy_dev->mux_mode = 1;
+			/* Currently Mux mode support Dual GSML only.
+			 * This can be done with architecture specific with
+			 * introducing MACRO for max support device.
+			 */
+			csiphy_dev->session_max_device_support =
+				CSIPHY_MAX_INSTANCES_PER_PHY - 1;
+
+		}
+
 		if (csiphy_acq_params.cphy_dphy_combo_mode == 1) {
 			CAM_DBG(CAM_CSIPHY,
 				"cphy_dphy_combo_mode stream detected");
@@ -1180,8 +1208,9 @@ int32_t cam_csiphy_core_cfg(void *phy_dev,
 		}
 
 		if (!csiphy_acq_params.combo_mode &&
+			!csiphy_acq_params.mux_mode &&
 			!csiphy_acq_params.cphy_dphy_combo_mode) {
-			CAM_DBG(CAM_CSIPHY, "Non Combo Mode stream");
+			CAM_DBG(CAM_CSIPHY, "Non Combo/Mux Mode stream");
 			csiphy_dev->session_max_device_support = 1;
 		}
 
@@ -1278,9 +1307,20 @@ int32_t cam_csiphy_core_cfg(void *phy_dev,
 			csiphy_dev->csiphy_info[offset].csiphy_cpas_cp_reg_mask
 				= 0;
 
-			cam_csiphy_update_lane(csiphy_dev, offset, false);
+			/* MuxMode uses same data lanes for the csiphy.
+			 * this condition is to prevent disabling datalanes
+			 * for streaming sensor in MuxMode.
+			 */
+			if (!csiphy_dev->mux_mode)
+				cam_csiphy_update_lane(csiphy_dev, offset, false);
 			goto release_mutex;
 		}
+
+		/* Below condition is explicitly disabling all data lanes
+		 * when all sensors are requested for stop.
+		 */
+		if (csiphy_dev->mux_mode && !csiphy_dev->start_dev_count)
+			cam_csiphy_update_lane(csiphy_dev, offset, false);
 
 		if (csiphy_dev->csiphy_info[offset].secure_mode)
 			cam_csiphy_notify_secure_mode(
@@ -1487,6 +1527,13 @@ int32_t cam_csiphy_core_cfg(void *phy_dev,
 				}
 			}
 
+			/* For Mux mode we can bypass this as well, but leave it
+			 * intentionally with the expectation in case of both
+			 * sensors may use differnt data lanes. In case of all
+			 * datalane enabled by first sensor, and redo the same
+			 * operation when sencond sensor request for start will not
+			 * have any impact on csiphy operation.
+			 */
 			rc = cam_csiphy_update_lane(csiphy_dev, offset, true);
 			if (csiphy_dump == 1)
 				cam_csiphy_mem_dmp(&csiphy_dev->soc_info);
