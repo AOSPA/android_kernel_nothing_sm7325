@@ -47,7 +47,7 @@ static void set_tcp_default(void)
 
 /*sysctl handler for tcp_ack realted master control */
 int tcp_proc_delayed_ack_control(struct ctl_table *table, int write,
-				 void __user *buffer, size_t *length,
+				 void *buffer, size_t *length,
 				 loff_t *ppos)
 {
 	int ret = proc_dointvec_minmax(table, write, buffer, length, ppos);
@@ -61,7 +61,7 @@ int tcp_proc_delayed_ack_control(struct ctl_table *table, int write,
 
 /*sysctl handler for tcp_ack realted master control */
 int tcp_use_userconfig_sysctl_handler(struct ctl_table *table, int write,
-				      void __user *buffer, size_t *length,
+				      void *buffer, size_t *length,
 				      loff_t *ppos)
 {
 	int ret = proc_dointvec_minmax(table, write, buffer, length, ppos);
@@ -199,7 +199,7 @@ static void tcp_mtu_probing(struct inet_connection_sock *icsk, struct sock *sk)
 		return;
 
 	if (!icsk->icsk_mtup.enabled) {
-		icsk->icsk_mtup.enabled = 1;
+		icsk->icsk_mtup.enabled = -1;
 		icsk->icsk_mtup.probe_timestamp = tcp_jiffies32;
 	} else {
 		mss = tcp_mtu_to_mss(sk, icsk->icsk_mtup.search_low) >> 1;

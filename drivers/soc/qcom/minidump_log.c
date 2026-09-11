@@ -94,7 +94,7 @@ static size_t md_ftrace_buf_current;
 
 static bool md_in_oops_handler;
 static struct seq_buf *md_runq_seq_buf;
-static md_align_offset;
+static int md_align_offset;
 
 /* CPU context information */
 #ifdef CONFIG_QCOM_MINIDUMP_PANIC_CPU_CONTEXT
@@ -855,7 +855,7 @@ static void md_dump_data(unsigned long addr, int nbytes, const char *name)
 			if (__is_lm_address(p) &&
 			    kern_addr_valid((unsigned long)p) &&
 			    page_accessible(page_to_pfn(virt_to_page(p))) &&
-			    !probe_kernel_address(p, data))
+			    !get_kernel_nofault(data, p))
 				seq_buf_printf(md_cntxt_seq_buf, " %08x",
 						data);
 			else

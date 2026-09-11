@@ -446,9 +446,7 @@ static unsigned long __munlock_pagevec_fill(struct pagevec *pvec,
 void munlock_vma_pages_range(struct vm_area_struct *vma,
 			     unsigned long start, unsigned long end)
 {
-	vm_write_begin(vma);
-	WRITE_ONCE(vma->vm_flags, vma->vm_flags & VM_LOCKED_CLEAR_MASK);
-	vm_write_end(vma);
+	vma->vm_flags &= VM_LOCKED_CLEAR_MASK;
 
 	while (start < end) {
 		struct page *page;
@@ -575,6 +573,7 @@ success:
 
 	if (lock)
 		vma->vm_flags = vma_pad_fixup_flags(vma, newflags);
+
 	else
 		munlock_vma_pages_range(vma, start, end);
 

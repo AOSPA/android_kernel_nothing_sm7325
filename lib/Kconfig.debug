@@ -782,6 +782,7 @@ config DEBUG_STACKOVERFLOW
 	  If in doubt, say "N".
 
 source "lib/Kconfig.kasan"
+source "lib/Kconfig.kfence"
 
 endmenu # "Memory Debugging"
 
@@ -2171,6 +2172,16 @@ config PANIC_ON_DATA_CORRUPTION
 	 for easier detection and debug.
 	 If we do not panic immediately after corruptions have been detected,
 	 the problem context is lost in the ensuing system mayhem.
+
+config CC_WERROR
+	bool "Treat all compile warnings as errors"
+	default n
+	help
+	 Select this option to set compiler warnings as errors,
+	 to prevent easily-fixable problems from creeping into
+	 the codebase.
+
+	 If unsure, say N.
 
 source "samples/Kconfig"
 

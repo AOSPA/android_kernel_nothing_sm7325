@@ -11,6 +11,8 @@
 #include <linux/refcount.h>
 #include <linux/posix-timers.h>
 #include <linux/android_kabi.h>
+#include <linux/mm_types.h>
+#include <asm/ptrace.h>
 
 /*
  * Types defining task->signal and task->sighand and APIs using them:
@@ -375,6 +377,20 @@ static inline int signal_pending_state(long state, struct task_struct *p)
 }
 
 /*
+ * This should only be used in fault handlers to decide whether we
+ * should stop the current fault routine to handle the signals
+ * instead, especially with the case where we've got interrupted with
+ * a VM_FAULT_RETRY.
+ */
+static inline bool fault_signal_pending(vm_fault_t fault_flags,
+					struct pt_regs *regs)
+{
+	return unlikely((fault_flags & VM_FAULT_RETRY) &&
+			(fatal_signal_pending(current) ||
+			 (user_mode(regs) && signal_pending(current))));
+}
+
+/*
  * Reevaluate whether the task has signals pending delivery.
  * Wake the task if so.
  * This is required every time the blocked sigset_t changes.
@@ -674,6 +690,8 @@ static inline int thread_group_empty(struct task_struct *p)
 
 extern struct sighand_struct *__lock_task_sighand(struct task_struct *task,
 							unsigned long *flags);
+
+extern bool thread_group_exited(struct pid *pid);
 
 static inline struct sighand_struct *lock_task_sighand(struct task_struct *task,
 						       unsigned long *flags)
