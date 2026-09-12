@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/of.h>
@@ -91,21 +90,6 @@ int32_t cam_sensor_get_sub_module_index(struct device_node *of_node,
 		CAM_ERR(CAM_SENSOR, "paring the dt node for csiphy rc %d", rc);
 	else
 		sensor_info->subdev_id[SUB_MODULE_CSIPHY] = val;
-
-	src_node = of_parse_phandle(of_node, "ir-led-src", 0);
-	if (!src_node) {
-		CAM_DBG(CAM_SENSOR, "ir led src_node NULL");
-	} else {
-		rc = of_property_read_u32(src_node, "cell-index", &val);
-		CAM_DBG(CAM_SENSOR, "ir led cell index %d, rc %d", val, rc);
-		if (rc < 0) {
-			CAM_ERR(CAM_SENSOR, "failed %d", rc);
-			of_node_put(src_node);
-			return rc;
-		}
-		sensor_info->subdev_id[SUB_MODULE_IR_LED] = val;
-		of_node_put(src_node);
-	}
 
 	return rc;
 }
