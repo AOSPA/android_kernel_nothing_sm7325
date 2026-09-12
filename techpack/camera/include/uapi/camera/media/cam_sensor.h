@@ -409,20 +409,6 @@ struct cam_sensor_streamon_dev {
 } __attribute__((packed));
 
 /**
- * struct cam_irled_init : Init command for the irled
- * @irled_type  :    irled hw type
- * @reserved
- * @cmd_type    :    command buffer type
- */
-
-struct cam_irled_init {
-	__u32    irled_type;
-	__u8     reserved;
-	__u8     cmd_type;
-	__u16    reserved1;
-} __attribute__((packed));
-
-/**
  * struct cam_flash_init : Init command for the flash
  * @flash_type  :    flash hw type
  * @reserved

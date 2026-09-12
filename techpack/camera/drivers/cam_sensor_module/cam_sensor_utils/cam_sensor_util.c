@@ -1373,8 +1373,8 @@ int32_t cam_sensor_update_power_settings(void *cmd_buf,
 			rc = -EINVAL;
 			goto free_power_settings;
 		}
-		if ((cmm_hdr->cmd_type == CAMERA_SENSOR_CMD_TYPE_PWR_UP) ||
-			(cmm_hdr->cmd_type == CAMERA_SENSOR_IRCUT_CMD_TYPE_ON)) {
+		if (cmm_hdr->cmd_type ==
+			CAMERA_SENSOR_CMD_TYPE_PWR_UP) {
 			struct cam_cmd_power *pwr_up_cmd =
 				(struct cam_cmd_power *)ptr;
 
@@ -1426,7 +1426,7 @@ int32_t cam_sensor_update_power_settings(void *cmd_buf,
 				power_info->power_setting[pwr_up].seq_type,
 				power_info->power_setting[pwr_up].config_val);
 			}
-			last_cmd_type = cmm_hdr->cmd_type;
+			last_cmd_type = CAMERA_SENSOR_CMD_TYPE_PWR_UP;
 			ptr = (void *) scr;
 			cmm_hdr = (struct common_header *)ptr;
 		} else if (cmm_hdr->cmd_type == CAMERA_SENSOR_CMD_TYPE_WAIT) {
@@ -1434,8 +1434,8 @@ int32_t cam_sensor_update_power_settings(void *cmd_buf,
 				(struct cam_cmd_unconditional_wait *)ptr;
 			if ((wait_cmd->op_code ==
 				CAMERA_SENSOR_WAIT_OP_SW_UCND) &&
-				((last_cmd_type == CAMERA_SENSOR_CMD_TYPE_PWR_UP) ||
-				(last_cmd_type == CAMERA_SENSOR_IRCUT_CMD_TYPE_ON))) {
+				(last_cmd_type ==
+				CAMERA_SENSOR_CMD_TYPE_PWR_UP)) {
 				if (pwr_up > 0) {
 					pwr_settings =
 					&power_info->power_setting[pwr_up - 1];
@@ -1447,8 +1447,8 @@ int32_t cam_sensor_update_power_settings(void *cmd_buf,
 				}
 			} else if ((wait_cmd->op_code ==
 				CAMERA_SENSOR_WAIT_OP_SW_UCND) &&
-				((last_cmd_type == CAMERA_SENSOR_CMD_TYPE_PWR_DOWN) ||
-				(last_cmd_type == CAMERA_SENSOR_IRCUT_CMD_TYPE_OFF))) {
+				(last_cmd_type ==
+				CAMERA_SENSOR_CMD_TYPE_PWR_DOWN)) {
 				if (pwr_down > 0) {
 					pwr_settings =
 					&power_info->power_down_setting[
@@ -1479,9 +1479,9 @@ int32_t cam_sensor_update_power_settings(void *cmd_buf,
 				struct cam_cmd_unconditional_wait), ptr);
 
 			cmm_hdr = (struct common_header *)ptr;
-		} else if ((cmm_hdr->cmd_type == CAMERA_SENSOR_CMD_TYPE_PWR_DOWN) ||
-				(cmm_hdr->cmd_type == CAMERA_SENSOR_IRCUT_CMD_TYPE_OFF)) {
-			struct cam_cmd_power *pwr_dwn_cmd =
+		} else if (cmm_hdr->cmd_type ==
+			CAMERA_SENSOR_CMD_TYPE_PWR_DOWN) {
+			struct cam_cmd_power *pwr_dwn_cmd  =
 				(struct cam_cmd_power *)ptr;
 
 			scr = ptr + sizeof(struct cam_cmd_power);
@@ -1537,7 +1537,7 @@ int32_t cam_sensor_update_power_settings(void *cmd_buf,
 					pwr_down, pwr_settings->seq_type,
 					pwr_settings->config_val);
 			}
-			last_cmd_type = cmm_hdr->cmd_type;
+			last_cmd_type = CAMERA_SENSOR_CMD_TYPE_PWR_DOWN;
 			ptr = (void *) scr;
 			cmm_hdr = (struct common_header *)ptr;
 		} else {
@@ -2026,122 +2026,6 @@ static int cam_config_mclk_reg(struct cam_sensor_power_ctrl_t *ctrl,
 	return rc;
 }
 
-int cam_config_ircut(struct cam_sensor_power_ctrl_t *ircut_info,
-		struct cam_hw_soc_info *soc_info,
-		bool *is_ircut_gpio_requested)
-{
-	int rc = 0, index = 0, no_gpio = 0;
-	struct cam_sensor_power_setting *ircut_setting = NULL;
-	struct msm_camera_gpio_num_info *gpio_num_info = NULL;
-	uint16_t ircut_setting_size = 0;
-
-	CAM_DBG(CAM_SENSOR, "Enter");
-	if (!ircut_info) {
-		CAM_ERR(CAM_SENSOR, "Invalid ctrl handle");
-		return -EINVAL;
-	}
-
-	gpio_num_info = ircut_info->gpio_num_info;
-
-	if (!(*is_ircut_gpio_requested)) {
-		rc = cam_sensor_util_request_gpio_table(soc_info, 1);
-		if (rc < 0)
-			no_gpio = rc;
-		else
-			*is_ircut_gpio_requested = true;
-	}
-
-	CAM_DBG(CAM_SENSOR, "ircut setting size on:%d off:%d",
-		ircut_info->power_setting_size, ircut_info->power_down_setting_size);
-	if (ircut_info->power_setting_size > 0)
-		ircut_setting_size = ircut_info->power_setting_size;
-	else if (ircut_info->power_down_setting_size > 0)
-		ircut_setting_size = ircut_info->power_down_setting_size;
-
-	for (index = 0; index < ircut_setting_size; index++) {
-		CAM_DBG(CAM_SENSOR, "index: %d", index);
-		if (ircut_info->power_setting_size > 0)
-			ircut_setting = &ircut_info->power_setting[index];
-		else if (ircut_info->power_down_setting_size > 0)
-			ircut_setting = &ircut_info->power_down_setting[index];
-
-		if (!ircut_setting) {
-			CAM_ERR(CAM_SENSOR,
-				"Invalid ircut settings for index %d",
-				index);
-			return -EINVAL;
-		}
-
-		CAM_DBG(CAM_SENSOR, "seq_type %d", ircut_setting->seq_type);
-
-		switch (ircut_setting->seq_type) {
-		case SENSOR_RESET:
-		case SENSOR_STANDBY:
-		case SENSOR_CUSTOM_GPIO1:
-		case SENSOR_CUSTOM_GPIO2:
-			if (no_gpio) {
-				CAM_ERR(CAM_SENSOR, "request gpio failed");
-				goto power_up_failed;
-			}
-			if (!gpio_num_info) {
-				CAM_ERR(CAM_SENSOR, "Invalid gpio_num_info");
-				goto power_up_failed;
-			}
-			CAM_DBG(CAM_SENSOR, "gpio set val %d",
-				gpio_num_info->gpio_num
-				[ircut_setting->seq_type]);
-
-			rc = msm_cam_sensor_handle_reg_gpio(
-				ircut_setting->seq_type,
-				gpio_num_info,
-				(int) ircut_setting->config_val);
-			if (rc < 0) {
-				CAM_ERR(CAM_SENSOR,
-					"Error in handling VREG GPIO");
-				goto power_up_failed;
-			}
-			break;
-		default:
-			CAM_ERR(CAM_SENSOR, "error ircut seq type %d",
-				ircut_setting->seq_type);
-			break;
-		}
-	}
-
-	return 0;
-
-power_up_failed:
-	CAM_ERR(CAM_SENSOR, "failed");
-	for (index--; index >= 0; index--) {
-		CAM_DBG(CAM_SENSOR, "index %d",  index);
-		CAM_DBG(CAM_SENSOR, "type %d",
-			ircut_setting->seq_type);
-		switch (ircut_setting->seq_type) {
-		case SENSOR_RESET:
-		case SENSOR_STANDBY:
-		case SENSOR_CUSTOM_GPIO1:
-		case SENSOR_CUSTOM_GPIO2:
-			if (!gpio_num_info)
-				continue;
-			if (!gpio_num_info->valid
-				[ircut_setting->seq_type])
-				continue;
-			cam_res_mgr_gpio_set_value(
-				gpio_num_info->gpio_num
-				[ircut_setting->seq_type], GPIOF_OUT_INIT_LOW);
-			break;
-		default:
-			CAM_ERR(CAM_SENSOR, "error power seq type %d",
-				ircut_setting->seq_type);
-			break;
-		}
-	}
-
-	cam_sensor_util_request_gpio_table(soc_info, 0);
-	*is_ircut_gpio_requested = false;
-	return rc;
-}
-
 int cam_sensor_core_power_up(struct cam_sensor_power_ctrl_t *ctrl,
 		struct cam_hw_soc_info *soc_info)
 {
@@ -2174,8 +2058,9 @@ int cam_sensor_core_power_up(struct cam_sensor_power_ctrl_t *ctrl,
 	}
 
 	rc = cam_sensor_util_request_gpio_table(soc_info, 1);
-	if (rc < 0)
+	if (rc < 0) {
 		no_gpio = rc;
+	}
 
 	if (ctrl->cam_pinctrl_status) {
 		ret = pinctrl_select_state(

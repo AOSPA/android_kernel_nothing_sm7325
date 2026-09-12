@@ -19,7 +19,6 @@
 #include "cam_soc_util.h"
 #include "cam_debug_util.h"
 #include "cam_sensor_io.h"
-#include "cam_ir_led_dev.h"
 
 #define INVALID_VREG 100
 #define RES_MGR_GPIO_NEED_HOLD   1
@@ -120,7 +119,4 @@ int32_t cam_sensor_handle_random_read(
 	struct list_head **list,
 	struct cam_buf_io_cfg *io_cfg, uint32_t payload_count);
 
-int cam_config_ircut(struct cam_sensor_power_ctrl_t *ircut_info,
-		struct cam_hw_soc_info *soc_info,
-		bool *is_ircut_gpio_requested);
 #endif /* _CAM_SENSOR_UTIL_H_ */

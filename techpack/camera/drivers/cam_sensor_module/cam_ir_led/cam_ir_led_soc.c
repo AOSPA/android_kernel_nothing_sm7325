@@ -201,13 +201,6 @@ int cam_ir_led_get_dt_data(struct cam_ir_led_ctrl *ictrl,
 		CAM_ERR(CAM_IR_LED, "Fail to cam_ir_cut_get_gpio_info rc:%d", rc);
 	}
 
-	rc = cam_sensor_util_init_gpio_pin_tbl(soc_info,
-		&ictrl->ircut_info.gpio_num_info);
-	if ((rc < 0) || (!ictrl->ircut_info.gpio_num_info)) {
-		CAM_ERR(CAM_FLASH, "No/Error ircut GPIOs");
-		return -EINVAL;
-	}
-
 	if (of_property_read_bool(soc_info->dev->of_node, "pwms")) {
 		ictrl->pwm_dev = of_pwm_get(soc_info->dev,
 			ictrl->pdev->dev.of_node, NULL);
