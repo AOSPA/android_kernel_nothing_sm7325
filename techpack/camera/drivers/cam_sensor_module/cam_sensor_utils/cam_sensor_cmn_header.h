@@ -26,7 +26,6 @@
 #define CAM_ACTUATOR_NAME  "cam-actuator"
 #define CAM_CSIPHY_NAME    "cam-csiphy"
 #define CAM_FLASH_NAME     "cam-flash"
-#define CAM_IR_LED_NAME    "cam-irled"
 #define CAM_EEPROM_NAME    "cam-eeprom"
 #define CAM_OIS_NAME       "cam-ois"
 #define CAM_LENS_DRIVER_NAME "cam-lensdriver"

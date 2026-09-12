@@ -15,13 +15,7 @@
 #define _CAM_IR_LED_CORE_H_
 #include "cam_ir_led_dev.h"
 
-void cam_ir_led_shutdown(struct cam_ir_led_ctrl *ictrl);
-int cam_ir_led_stop_dev(struct cam_ir_led_ctrl *ictrl);
-int cam_ir_led_release_dev(struct cam_ir_led_ctrl *ictrl);
-
-int32_t cam_ir_led_publish_dev_info(struct cam_req_mgr_device_info *info);
-int32_t cam_ir_led_establish_link(struct cam_req_mgr_core_dev_link_setup *link);
-
-int cam_ir_led_apply_request(struct cam_req_mgr_apply_request *apply);
-int cam_ir_led_flush_request(struct cam_req_mgr_flush_request *flush);
+void cam_ir_led_shutdown(struct cam_ir_led_ctrl *ir_led_ctrl);
+int cam_ir_led_stop_dev(struct cam_ir_led_ctrl *ir_led_ctrl);
+int cam_ir_led_release_dev(struct cam_ir_led_ctrl *fctrl);
 #endif /*_CAM_IR_LED_CORE_H_*/

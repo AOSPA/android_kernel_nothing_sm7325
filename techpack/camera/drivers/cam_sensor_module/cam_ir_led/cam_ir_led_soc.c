@@ -175,7 +175,7 @@ free_gpio_conf:
 int cam_ir_led_get_dt_data(struct cam_ir_led_ctrl *ictrl,
 	struct cam_hw_soc_info *soc_info)
 {
-	int32_t rc = 0, i = 0;
+	int32_t rc = 0;
 
 	if (!ictrl) {
 		CAM_ERR(CAM_IR_LED, "NULL ir_led control structure");
@@ -201,13 +201,11 @@ int cam_ir_led_get_dt_data(struct cam_ir_led_ctrl *ictrl,
 		CAM_ERR(CAM_IR_LED, "Fail to cam_ir_cut_get_gpio_info rc:%d", rc);
 	}
 
-	for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
-		rc = cam_sensor_util_init_gpio_pin_tbl(soc_info,
-			&ictrl->per_frame[i].ircut_info.gpio_num_info);
-		if ((rc < 0) || (!ictrl->per_frame[i].ircut_info.gpio_num_info)) {
-			CAM_ERR(CAM_FLASH, "No/Error ircut GPIOs");
-			return -EINVAL;
-		}
+	rc = cam_sensor_util_init_gpio_pin_tbl(soc_info,
+		&ictrl->ircut_info.gpio_num_info);
+	if ((rc < 0) || (!ictrl->ircut_info.gpio_num_info)) {
+		CAM_ERR(CAM_FLASH, "No/Error ircut GPIOs");
+		return -EINVAL;
 	}
 
 	if (of_property_read_bool(soc_info->dev->of_node, "pwms")) {

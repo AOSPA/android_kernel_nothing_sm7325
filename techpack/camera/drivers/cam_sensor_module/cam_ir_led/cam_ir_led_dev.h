@@ -46,9 +46,8 @@
 #define CAM_IR_LED_PACKET_OPCODE_INIT                 0
 #define CAM_IR_LED_PACKET_OPCODE_SET_OPS              1
 #define CAM_IR_LED_PACKET_OPCODE_NON_REALTIME_SET_OPS 2
-#define CAM_IR_LED_PACKET_OPCODE_STREAM_OFF           3
-#define CAM_IR_CUT_PACKET_OPCODE_ON                   4
-#define CAM_IR_CUT_PACKET_OPCODE_OFF                  5
+#define CAM_IR_CUT_PACKET_OPCODE_ON   3
+#define CAM_IR_CUT_PACKET_OPCODE_OFF  4
 
 enum cam_ir_led_switch_trigger_ops {
 	IR_LED_SWITCH_OFF = 0,
@@ -69,12 +68,6 @@ enum cam_ir_led_state {
 	CAM_IR_LED_STATE_START,
 	CAM_IR_LED_STATE_ON,
 	CAM_IR_LED_STATE_OFF,
-};
-
-enum cam_ir_led_flush_type {
-	IR_FLUSH_ALL = 0,
-	IR_FLUSH_REQ,
-	IR_FLUSH_MAX,
 };
 
 /**
@@ -141,23 +134,10 @@ struct cam_ir_led_private_soc {
 };
 
 /**
- * struct ir_cut_frame_setting
- * @is_settings_valid  : Notify the valid settings
- * @request_id         : Request id provided by umd
- * @ircut_info         : IRCut information
- */
-struct cam_ir_cut_frame_setting {
-	bool                           is_settings_valid;
-	uint64_t                       request_id;
-	struct cam_sensor_power_ctrl_t ircut_info;
-};
-
-/**
  *  struct cam_ir_led_ctrl
  * @soc_info            : Soc related information
  * @pdev                : Platform device
  * @power_info          : IRLED power information
- * @per_frame           : IRcut frame setting
  * @pwm_dev             : PWM device handle
  * @func_tbl            : structure of h/w specific function pointers
  * @of_node             : Of Node ptr
@@ -170,14 +150,12 @@ struct cam_ir_cut_frame_setting {
  * @i2c_data            : I2C register settings
  * @irled_type          : IRLED types (PMIC/I2C/GPIO)
  * @is_regulator_enable : Regulator disable/enable notifier
- * @bridge_intf         : Bridge interface structure
- * @last_flush_req      : last request to flush
  */
 struct cam_ir_led_ctrl {
 	struct cam_hw_soc_info              soc_info;
 	struct platform_device              *pdev;
 	struct cam_sensor_power_ctrl_t      power_info;
-	struct cam_ir_cut_frame_setting     per_frame[MAX_PER_FRAME_ARRAY];
+	struct cam_sensor_power_ctrl_t      ircut_info;
 	struct pwm_device                   *pwm_dev;
 	struct cam_ir_led_func              *func_tbl;
 	struct device_node                  *of_node;
@@ -191,8 +169,6 @@ struct cam_ir_led_ctrl {
 	uint8_t                             irled_type;
 	bool                                is_regulator_enabled;
 	bool                                is_ircut_gpio_requested;
-	struct cam_ir_led_intf_params       bridge_intf;
-	uint32_t                            last_flush_req;
 };
 
 struct cam_ir_led_func {
@@ -205,10 +181,8 @@ struct cam_ir_led_func {
 	int32_t (*camera_ir_cut_on)(struct cam_ir_led_ctrl *,
 		struct cam_ir_led_set_on_off *);
 	int (*apply_setting)(struct cam_ir_led_ctrl *ictrl, uint64_t req_id);
-	int (*flush_req)(struct cam_ir_led_ctrl *ictrl,
-		enum cam_ir_led_flush_type type, uint64_t req_id);
 	int (*power_ops)(struct cam_ir_led_ctrl *ictrl);
-	int (*ircut_ops)(struct cam_ir_led_ctrl *ictrl, uint64_t req_id);
+	int (*ircut_ops)(struct cam_ir_led_ctrl *ictrl);
 };
 
 struct cam_ir_led_table {
@@ -217,10 +191,8 @@ struct cam_ir_led_table {
 };
 
 int cam_i2c_ir_led_apply_setting(struct cam_ir_led_ctrl *ictrl, uint64_t req_id);
-int cam_i2c_ir_led_flush_request(struct cam_ir_led_ctrl *ictrl,
-	enum cam_ir_led_flush_type type, uint64_t req_id);
 int cam_i2c_ir_led_power_ops(struct cam_ir_led_ctrl *ictrl);
-int cam_i2c_ir_cut_ops(struct cam_ir_led_ctrl *ictrl, uint64_t req_id);
+int cam_i2c_ir_cut_ops(struct cam_ir_led_ctrl *ictrl);
 
 /**
  * @brief : API to register IR LED hw to platform framework.

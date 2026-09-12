@@ -293,21 +293,24 @@ static int32_t cam_irled_slaveInfo_pkt_parser(struct cam_ir_led_ctrl *ictrl,
 	return rc;
 }
 
-int cam_i2c_ir_cut_ops(struct cam_ir_led_ctrl *ictrl,
-	uint64_t req_id)
+int cam_i2c_ir_cut_ops(struct cam_ir_led_ctrl *ictrl)
 {
 	int rc = 0;
 	struct cam_hw_soc_info *soc_info = &ictrl->soc_info;
-
 	struct cam_sensor_power_ctrl_t *ircut_info =
-			&(ictrl->per_frame[req_id % MAX_PER_FRAME_ARRAY].ircut_info);
+		&ictrl->ircut_info;
+
 	if (!ircut_info || !soc_info) {
 		CAM_ERR(CAM_IR_LED, "IRCUT Info is NULL");
 		return -EINVAL;
 	}
 	ircut_info->dev = soc_info->dev;
 
-	rc = cam_config_ircut(ircut_info, soc_info, &ictrl->is_ircut_gpio_requested);
+	if ((ircut_info->power_setting_size > 0) ||
+		(ircut_info->power_down_setting_size > 0)) {
+		rc = cam_config_ircut(ircut_info, soc_info, &ictrl->is_ircut_gpio_requested);
+
+	}
 
 	return rc;
 }
@@ -407,15 +410,6 @@ static int cam_ir_led_i2c_flush_nrt(struct cam_ir_led_ctrl *ictrl)
 			return rc;
 		}
 	}
-	if (ictrl->i2c_data.streamoff_settings.is_settings_valid == true) {
-		rc = delete_request(&ictrl->i2c_data.streamoff_settings);
-		if (rc) {
-			CAM_WARN(CAM_IR_LED,
-				"Failed to delete NRT i2c_setting: %d",
-				rc);
-			return rc;
-		}
-	}
 
 	return rc;
 }
@@ -423,116 +417,19 @@ static int cam_ir_led_i2c_flush_nrt(struct cam_ir_led_ctrl *ictrl)
 static int cam_ir_led_i2c_delete_req(struct cam_ir_led_ctrl *ictrl,
 	uint64_t req_id)
 {
-	int i = 0, rc = 0;
-	uint64_t top = 0, del_req_id = 0;
-
-	if (req_id == 0) {
+	if (req_id == 0)
 		cam_ir_led_i2c_flush_nrt(ictrl);
-	} else {
-		for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
-			if ((req_id >=
-				ictrl->i2c_data.per_frame[i].request_id) &&
-				(top <
-				ictrl->i2c_data.per_frame[i].request_id) &&
-				(ictrl->i2c_data.per_frame[i].is_settings_valid
-					== 1)) {
-				del_req_id = top;
-				top = ictrl->i2c_data.per_frame[i].request_id;
-			}
-		}
-
-		if (top < req_id) {
-			if ((((top % MAX_PER_FRAME_ARRAY) - (req_id %
-				MAX_PER_FRAME_ARRAY)) >= BATCH_SIZE_MAX) ||
-				(((top % MAX_PER_FRAME_ARRAY) - (req_id %
-				MAX_PER_FRAME_ARRAY)) <= -BATCH_SIZE_MAX))
-				del_req_id = req_id;
-		}
-
-		if (!del_req_id)
-			return rc;
-
-		CAM_DBG(CAM_IR_LED, "top: %llu, del_req_id:%llu",
-			top, del_req_id);
-
-		for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
-			if ((del_req_id >
-				 ictrl->i2c_data.per_frame[i].request_id) && (
-				 ictrl->i2c_data.per_frame[i].is_settings_valid
-					== 1)) {
-				ictrl->i2c_data.per_frame[i].request_id = 0;
-				rc = delete_request(
-					&(ictrl->i2c_data.per_frame[i]));
-				if (rc < 0)
-					CAM_ERR(CAM_SENSOR,
-						"Delete request Fail:%lld rc:%d",
-						del_req_id, rc);
-			}
-		}
-	}
 
 	return 0;
-}
-
-static void cam_ir_cut_delete_req(struct cam_ir_led_ctrl *ictrl,
-	uint64_t req_id)
-{
-	struct cam_ir_cut_frame_setting *ir_cut_data = NULL;
-	int frame_offset = 0;
-
-	uint64_t top = 0, del_req_id = 0;
-	int i = 0;
-
-	if (req_id != 0) {
-		for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
-			ir_cut_data = &ictrl->per_frame[i];
-			if (req_id >= ir_cut_data->request_id &&
-				ir_cut_data->is_settings_valid
-				== 1) {
-				if (top < ir_cut_data->request_id) {
-					del_req_id = top;
-					top = ir_cut_data->request_id;
-				} else if (top >
-					ir_cut_data->request_id &&
-					del_req_id <
-					ir_cut_data->request_id) {
-					del_req_id =
-						ir_cut_data->request_id;
-				}
-			}
-		}
-
-		if (top < req_id) {
-			if ((((top % MAX_PER_FRAME_ARRAY) - (req_id %
-				MAX_PER_FRAME_ARRAY)) >= BATCH_SIZE_MAX) ||
-				(((top % MAX_PER_FRAME_ARRAY) - (req_id %
-				MAX_PER_FRAME_ARRAY)) <= -BATCH_SIZE_MAX))
-				del_req_id = req_id;
-		}
-
-		if (!del_req_id)
-			return;
-
-		CAM_DBG(CAM_IR_LED, "top: %llu, del_req_id:%llu",
-			top, del_req_id);
-	}
-	/* delete the request */
-	frame_offset = del_req_id % MAX_PER_FRAME_ARRAY;
-	//frame_offset = req_id % MAX_PER_FRAME_ARRAY;
-	ir_cut_data = &ictrl->per_frame[frame_offset];
-	ir_cut_data->request_id = 0;
-	ir_cut_data->is_settings_valid = false;
 }
 
 int cam_i2c_ir_led_apply_setting(struct cam_ir_led_ctrl *ictrl,
 	uint64_t req_id)
 {
+	int rc = 0;
 	struct i2c_settings_list *i2c_list;
-	struct i2c_settings_array *i2c_set = NULL;
-	int frame_offset = 0, rc = 0;
 
 	CAM_DBG(CAM_IR_LED, "req_id=%llu", req_id);
-
 	if (req_id == 0) {
 		/* NonRealTime Init settings*/
 		if (ictrl->i2c_data.init_settings.is_settings_valid == true) {
@@ -564,109 +461,9 @@ int cam_i2c_ir_led_apply_setting(struct cam_ir_led_ctrl *ictrl,
 				}
 			}
 		}
-
-		if (ictrl->i2c_data.streamoff_settings.is_settings_valid == true) {
-			list_for_each_entry(i2c_list,
-				&(ictrl->i2c_data.streamoff_settings.list_head),
-				list) {
-				rc = cam_sensor_util_i2c_apply_setting
-					(&(ictrl->io_master_info), i2c_list);
-				if (rc) {
-					CAM_ERR(CAM_IR_LED,
-					"Failed to apply stream off settings: %d",
-					rc);
-					return rc;
-				}
-			}
-		}
-
-	} else {
-		/* RealTime */
-		frame_offset = req_id % MAX_PER_FRAME_ARRAY;
-		i2c_set = &ictrl->i2c_data.per_frame[frame_offset];
-		if ((i2c_set->is_settings_valid == true) &&
-			(i2c_set->request_id == req_id)) {
-			list_for_each_entry(i2c_list,
-				&(i2c_set->list_head),
-				list) {
-				rc = cam_sensor_util_i2c_apply_setting
-					(&(ictrl->io_master_info), i2c_list);
-				if (rc) {
-					CAM_ERR(CAM_IR_LED,
-					"Failed to apply config settings: %d",
-					rc);
-					return rc;
-				}
-			}
-		}
-
-		if ((ictrl->per_frame[frame_offset].ircut_info.power_setting_size > 0) ||
-			(ictrl->per_frame[frame_offset].ircut_info.power_down_setting_size > 0)) {
-			if ((ictrl->per_frame[frame_offset].is_settings_valid) &&
-				(ictrl->per_frame[frame_offset].request_id == req_id)) {
-				if (ictrl->func_tbl->ircut_ops != NULL) {
-					rc = ictrl->func_tbl->ircut_ops(ictrl, req_id);
-					if (rc) {
-						CAM_ERR(CAM_IR_LED,
-							"Update IRCUT Failed rc = %d", rc);
-					}
-				}
-			}
-		}
 	}
 
 	cam_ir_led_i2c_delete_req(ictrl, req_id);
-	cam_ir_cut_delete_req(ictrl, req_id);
-	return rc;
-}
-
-int cam_i2c_ir_led_flush_request(struct cam_ir_led_ctrl *ictrl,
-	enum cam_ir_led_flush_type type, uint64_t req_id)
-{
-	int rc = 0;
-	int i = 0;
-	uint32_t cancel_req_id_found = 0;
-	struct i2c_settings_array *i2c_set = NULL;
-
-	if (!ictrl) {
-		CAM_ERR(CAM_IR_LED, "Device data is NULL");
-		return -EINVAL;
-	}
-	if ((type == IR_FLUSH_REQ) && (req_id == 0)) {
-		/* This setting will be called only when NonRealTime
-		 * settings needs to clean.
-		 */
-		cam_ir_led_i2c_flush_nrt(ictrl);
-	} else {
-		/* All other usecase will be handle here */
-		for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
-			i2c_set = &(ictrl->i2c_data.per_frame[i]);
-
-			if ((type == IR_FLUSH_REQ) &&
-				(i2c_set->request_id != req_id))
-				continue;
-
-			if (i2c_set->is_settings_valid == 1) {
-				rc = delete_request(i2c_set);
-				if (rc < 0)
-					CAM_ERR(CAM_IR_LED,
-						"delete request: %lld rc: %d",
-						i2c_set->request_id, rc);
-
-				if (type == IR_FLUSH_REQ) {
-					cancel_req_id_found = 1;
-					break;
-				}
-			}
-		}
-	}
-
-	if ((type == IR_FLUSH_REQ) && (req_id != 0) &&
-			(!cancel_req_id_found))
-		CAM_DBG(CAM_IR_LED,
-			"Flush request id:%lld not found in the pending list",
-			req_id);
-
 	return rc;
 }
 
@@ -680,13 +477,11 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 	uint16_t cmd_length_in_bytes = 0;
 	uintptr_t generic_ptr;
 	uint32_t  *offset = NULL;
-	uint32_t frm_offset = 0;
 	size_t len_of_buffer;
 	size_t remain_len;
 	struct cam_control *ioctl_ctrl = NULL;
 	struct cam_packet *csl_packet = NULL;
 	struct cam_config_dev_cmd config;
-	struct cam_req_mgr_add_request add_req;
 	struct cam_cmd_buf_desc *cmd_desc = NULL;
 	struct cam_ir_led_set_on_off *cam_ir_led_info = NULL;
 	struct common_header  *cmn_hdr = NULL;
@@ -737,20 +532,6 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 	offset = (uint32_t *)((uint8_t *)&csl_packet->payload +
 		csl_packet->cmd_buf_offset);
 	cmd_desc = (struct cam_cmd_buf_desc *)(offset);
-
-	if ((csl_packet->header.op_code & 0xFFFFFF) !=
-		CAM_IR_LED_PACKET_OPCODE_INIT &&
-		csl_packet->header.request_id <= ictrl->last_flush_req
-		&& ictrl->last_flush_req != 0) {
-		CAM_DBG(CAM_IR_LED,
-			"reject request %lld, last request to flush %lld",
-			csl_packet->header.request_id, ictrl->last_flush_req);
-		cam_mem_put_cpu_buf(config.packet_handle);
-		return -EINVAL;
-	}
-
-	if (csl_packet->header.request_id > ictrl->last_flush_req)
-		ictrl->last_flush_req = 0;
 
 	switch (csl_packet->header.op_code & 0xFFFFFF) {
 	case CAM_IR_LED_PACKET_OPCODE_INIT:
@@ -872,7 +653,7 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 					&ictrl->i2c_data.init_settings;
 
 				i2c_reg_settings->request_id = 0;
-				i2c_reg_settings->is_settings_valid = true;
+				i2c_reg_settings->is_settings_valid = 1;
 				rc = cam_sensor_i2c_command_parser(
 					&ictrl->io_master_info,
 					i2c_reg_settings,
@@ -915,120 +696,6 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 		}
 
 		ictrl->ir_led_state = CAM_IR_LED_STATE_CONFIG;
-		break;
-	case CAM_IR_LED_PACKET_OPCODE_SET_OPS:
-		for (i = 0; i < csl_packet->num_cmd_buf; i++) {
-			rc = cam_packet_util_validate_cmd_desc(&cmd_desc[i]);
-			if (rc)
-				return rc;
-
-			total_cmd_buf_in_bytes = cmd_desc[i].length;
-			processed_cmd_buf_in_bytes = 0;
-			if (!total_cmd_buf_in_bytes)
-				continue;
-			rc = cam_mem_get_cpu_buf(cmd_desc[i].mem_handle,
-				&generic_ptr, &len_of_buffer);
-			if (rc < 0) {
-				cam_mem_put_cpu_buf(config.packet_handle);
-				CAM_ERR(CAM_IR_LED, "Failed to get cpu buf");
-				return rc;
-			}
-
-			cmd_buf = (uint32_t *)generic_ptr;
-			if (!cmd_buf) {
-				CAM_ERR(CAM_IR_LED, "invalid cmd buf");
-				cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
-				cam_mem_put_cpu_buf(config.packet_handle);
-				return -EINVAL;
-			}
-
-			if ((len_of_buffer < sizeof(struct common_header)) ||
-				(cmd_desc[i].offset >
-				(len_of_buffer -
-				sizeof(struct common_header)))) {
-				cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
-				cam_mem_put_cpu_buf(config.packet_handle);
-				CAM_ERR(CAM_IR_LED, "invalid cmd buf length");
-				return -EINVAL;
-			}
-			remain_len = len_of_buffer - cmd_desc[i].offset;
-			cmd_buf += cmd_desc[i].offset / sizeof(uint32_t);
-			cmn_hdr = (struct common_header *)cmd_buf;
-
-			/* Loop through cmd formats in one cmd buffer */
-			CAM_DBG(CAM_IR_LED,
-				"command Type: %d,Processed: %d,Total: %d",
-				cmn_hdr->cmd_type, processed_cmd_buf_in_bytes,
-				total_cmd_buf_in_bytes);
-
-			switch (cmn_hdr->cmd_type) {
-			case CAMERA_SENSOR_IRCUT_CMD_TYPE_ON:
-			case CAMERA_SENSOR_IRCUT_CMD_TYPE_OFF:
-				CAM_DBG(CAM_IR_LED,
-					"Received ircut settings");
-				frm_offset = csl_packet->header.request_id %
-				    MAX_PER_FRAME_ARRAY;
-				cmd_length_in_bytes =
-					total_cmd_buf_in_bytes;
-
-				/* Reuse power implementions to control gpio for ircut */
-				rc = cam_sensor_update_power_settings(
-					cmd_buf,
-					total_cmd_buf_in_bytes,
-					&(ictrl->per_frame[frm_offset].ircut_info), remain_len);
-				ictrl->per_frame[frm_offset].request_id = csl_packet->header.request_id;
-				ictrl->per_frame[frm_offset].is_settings_valid = true;
-
-				processed_cmd_buf_in_bytes +=
-					cmd_length_in_bytes;
-				cmd_buf += cmd_length_in_bytes/
-						sizeof(uint32_t);
-				if (rc) {
-					CAM_ERR(CAM_IR_LED,
-					"Failed update power settings");
-					cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
-					cam_mem_put_cpu_buf(config.packet_handle);
-					return rc;
-				}
-				break;
-
-			default:
-				/* add support for handling i2c_data*/
-				frm_offset = csl_packet->header.request_id %
-					MAX_PER_FRAME_ARRAY;
-				i2c_reg_settings =
-					&ictrl->i2c_data.per_frame[frm_offset];
-				if (i2c_reg_settings->is_settings_valid == true) {
-					CAM_DBG(CAM_IR_LED, "settings already valid");
-					i2c_reg_settings->request_id = 0;
-					i2c_reg_settings->is_settings_valid = false;
-				}
-
-				i2c_reg_settings->is_settings_valid = true;
-				i2c_reg_settings->request_id =
-					csl_packet->header.request_id;
-				rc = cam_sensor_i2c_command_parser(
-					&ictrl->io_master_info,
-					i2c_reg_settings, cmd_desc, 1, NULL);
-				if (rc) {
-					CAM_ERR(CAM_IR_LED,
-						"Failed in parsing i2c RT packets");
-					cam_mem_put_cpu_buf(config.packet_handle);
-					return rc;
-				}
-				break;
-			}
-		}
-
-		if ((ictrl->func_tbl->apply_setting != NULL) && ((i2c_reg_settings != NULL) || (ictrl->per_frame[1].is_settings_valid == true))) {
-			rc = ictrl->func_tbl->apply_setting(ictrl, 1);
-			if (rc) {
-				CAM_ERR(CAM_IR_LED, "cannot apply settings rc = %d", rc);
-				cam_mem_put_cpu_buf(config.packet_handle);
-				return rc;
-			}
-		}
-
 		break;
 	case CAM_IR_LED_PACKET_OPCODE_NON_REALTIME_SET_OPS:
 		for (i = 0; i < csl_packet->num_cmd_buf; i++) {
@@ -1086,7 +753,7 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 				rc = cam_sensor_update_power_settings(
 					cmd_buf,
 					total_cmd_buf_in_bytes,
-					&ictrl->per_frame[0].ircut_info, remain_len);
+					&ictrl->ircut_info, remain_len);
 				processed_cmd_buf_in_bytes +=
 					cmd_length_in_bytes;
 				cmd_buf += cmd_length_in_bytes/
@@ -1132,10 +799,10 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 			}
 		}
 
-		if ((ictrl->per_frame[0].ircut_info.power_setting_size != 0) ||
-			(ictrl->per_frame[0].ircut_info.power_down_setting_size != 0)) {
+		if ((ictrl->ircut_info.power_setting_size != 0) ||
+			(ictrl->ircut_info.power_down_setting_size != 0)) {
 			if (ictrl->func_tbl->ircut_ops != NULL) {
-				rc = ictrl->func_tbl->ircut_ops(ictrl, 0);
+				rc = ictrl->func_tbl->ircut_ops(ictrl);
 				if (rc) {
 					CAM_ERR(CAM_IR_LED,
 						"Update IRCUT Failed rc = %d", rc);
@@ -1173,165 +840,14 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 			}
 		}
 		break;
-	case CAM_IR_LED_PACKET_OPCODE_STREAM_OFF:
-		for (i = 0; i < csl_packet->num_cmd_buf; i++) {
-			rc = cam_packet_util_validate_cmd_desc(&cmd_desc[i]);
-			if (rc)
-				return rc;
-
-			total_cmd_buf_in_bytes = cmd_desc[i].length;
-			processed_cmd_buf_in_bytes = 0;
-			if (!total_cmd_buf_in_bytes)
-				continue;
-			rc = cam_mem_get_cpu_buf(cmd_desc[i].mem_handle,
-				&generic_ptr, &len_of_buffer);
-			if (rc < 0) {
-				cam_mem_put_cpu_buf(config.packet_handle);
-				CAM_ERR(CAM_IR_LED, "Failed to get cpu buf");
-				return rc;
-			}
-
-			cmd_buf = (uint32_t *)generic_ptr;
-			if (!cmd_buf) {
-				CAM_ERR(CAM_IR_LED, "invalid cmd buf");
-				cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
-				cam_mem_put_cpu_buf(config.packet_handle);
-				return -EINVAL;
-			}
-
-			if ((len_of_buffer < sizeof(struct common_header)) ||
-				(cmd_desc[i].offset >
-				(len_of_buffer -
-				sizeof(struct common_header)))) {
-				cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
-				cam_mem_put_cpu_buf(config.packet_handle);
-				CAM_ERR(CAM_IR_LED, "invalid cmd buf length");
-				return -EINVAL;
-			}
-			remain_len = len_of_buffer - cmd_desc[i].offset;
-			cmd_buf += cmd_desc[i].offset / sizeof(uint32_t);
-			cmn_hdr = (struct common_header *)cmd_buf;
-
-			/* Loop through cmd formats in one cmd buffer */
-			CAM_DBG(CAM_IR_LED,
-				"command Type: %d,Processed: %d,Total: %d",
-				cmn_hdr->cmd_type, processed_cmd_buf_in_bytes,
-				total_cmd_buf_in_bytes);
-
-			switch (cmn_hdr->cmd_type) {
-			case CAMERA_SENSOR_IRCUT_CMD_TYPE_ON:
-			case CAMERA_SENSOR_IRCUT_CMD_TYPE_OFF:
-				CAM_DBG(CAM_IR_LED,
-					"Received ircut settings");
-				cmd_length_in_bytes =
-					total_cmd_buf_in_bytes;
-				/* Reuse power implementions to control gpio for ircut */
-				rc = cam_sensor_update_power_settings(
-					cmd_buf,
-					total_cmd_buf_in_bytes,
-					&(ictrl->per_frame[0].ircut_info), remain_len);
-				processed_cmd_buf_in_bytes +=
-					cmd_length_in_bytes;
-				cmd_buf += cmd_length_in_bytes/
-						sizeof(uint32_t);
-				if (rc) {
-					CAM_ERR(CAM_IR_LED,
-					"Failed update power settings");
-					cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
-					cam_mem_put_cpu_buf(config.packet_handle);
-					return rc;
-				}
-				break;
-
-			default:
-				/* add support for handling i2c_data*/
-				i2c_reg_settings = &ictrl->i2c_data.streamoff_settings;
-				if (i2c_reg_settings->is_settings_valid == true) {
-					i2c_reg_settings->request_id = 0;
-					i2c_reg_settings->is_settings_valid = false;
-
-					rc = delete_request(i2c_reg_settings);
-					if (rc) {
-						CAM_ERR(CAM_IR_LED,
-						"Failed in Deleting the err: %d", rc);
-						cam_mem_put_cpu_buf(config.packet_handle);
-						return rc;
-					}
-				}
-
-				i2c_reg_settings->is_settings_valid = true;
-				i2c_reg_settings->request_id =
-					csl_packet->header.request_id;
-				rc = cam_sensor_i2c_command_parser(
-					&ictrl->io_master_info,
-					i2c_reg_settings, cmd_desc, 1, NULL);
-				if (rc) {
-					CAM_ERR(CAM_IR_LED,
-					"Failed in parsing i2c NRT packets");
-					cam_mem_put_cpu_buf(config.packet_handle);
-					return rc;
-				}
-				break;
-			}
-		}
-	break;
 	case CAM_PKT_NOP_OPCODE:
-		frm_offset = csl_packet->header.request_id %
-			MAX_PER_FRAME_ARRAY;
-		if ((ictrl->ir_led_state == CAM_IR_LED_STATE_INIT) ||
-			(ictrl->ir_led_state == CAM_IR_LED_STATE_ACQUIRE)) {
-			CAM_WARN(CAM_IR_LED,
-				"Rxed NOP packets without linking");
-			ictrl->i2c_data.per_frame[frm_offset].is_settings_valid
-				= false;
-			cam_mem_put_cpu_buf(config.packet_handle);
-			return 0;
-		}
-		i2c_reg_settings =
-			&ictrl->i2c_data.per_frame[frm_offset];
-		i2c_reg_settings->is_settings_valid = true;
-		i2c_reg_settings->request_id =
-			csl_packet->header.request_id;
-		CAM_DBG(CAM_IR_LED, "NOP Packet is Received: req_id: %u",
-			csl_packet->header.request_id);
-		goto update_req_mgr;
+		CAM_DBG(CAM_IR_LED, "CAM_PKT_NOP_OPCODE");
+		break;
 	default:
 		CAM_ERR(CAM_IR_LED, "Invalid Opcode : %d",
 			(csl_packet->header.op_code & 0xFFFFFF));
 		return -EINVAL;
 	}
-update_req_mgr:
-	if (((csl_packet->header.op_code  & 0xFFFFF) ==
-		CAM_PKT_NOP_OPCODE) ||
-		((csl_packet->header.op_code & 0xFFFFF) ==
-		CAM_IR_LED_PACKET_OPCODE_SET_OPS)) {
-		memset(&add_req, 0, sizeof(add_req));
-		add_req.link_hdl = ictrl->bridge_intf.link_hdl;
-		add_req.req_id = csl_packet->header.request_id;
-		add_req.dev_hdl = ictrl->bridge_intf.device_hdl;
-
-		if ((csl_packet->header.op_code & 0xFFFFF) ==
-			CAM_IR_LED_PACKET_OPCODE_SET_OPS) {
-			add_req.trigger_eof = true;
-			add_req.skip_at_sof = 1;
-		}
-
-		if (ictrl->bridge_intf.crm_cb &&
-			ictrl->bridge_intf.crm_cb->add_req) {
-			rc = ictrl->bridge_intf.crm_cb->add_req(&add_req);
-			if  (rc) {
-				CAM_ERR(CAM_IR_LED,
-					"Failed in adding request: %llu to request manager",
-					csl_packet->header.request_id);
-				cam_mem_put_cpu_buf(config.packet_handle);
-				return rc;
-			}
-			CAM_DBG(CAM_IR_LED,
-				"add req %lld to req_mgr, trigger_eof %d",
-				add_req.req_id, add_req.trigger_eof);
-		}
-	}
-	cam_mem_put_cpu_buf(config.packet_handle);
 
 	return rc;
 }
@@ -1377,19 +893,10 @@ static int32_t cam_ir_led_driver_cmd(struct cam_ir_led_ctrl *ictrl,
 			goto release_mutex;
 		}
 
-		dev_hdl.session_hdl = ir_led_acq_dev.session_handle;
-		dev_hdl.v4l2_sub_dev_flag = 0;
-		dev_hdl.media_entity_flag = 0;
-		dev_hdl.dev_id = CAM_IR_LED;
-		dev_hdl.ops = &ictrl->bridge_intf.ops;
 		dev_hdl.priv = ictrl;
 
 		ir_led_acq_dev.device_handle =
 			cam_create_device_hdl(&dev_hdl);
-		ictrl->bridge_intf.device_hdl =
-			ir_led_acq_dev.device_handle;
-		ictrl->bridge_intf.session_hdl =
-			ir_led_acq_dev.session_handle;
 		ictrl->device_hdl =
 			ir_led_acq_dev.device_handle;
 
@@ -1418,11 +925,6 @@ static int32_t cam_ir_led_driver_cmd(struct cam_ir_led_ctrl *ictrl,
 				ictrl->device_hdl);
 			rc = -EINVAL;
 			goto release_mutex;
-		}
-		if ((ictrl->ir_led_state == CAM_IR_LED_STATE_CONFIG) ||
-			(ictrl->ir_led_state == CAM_IR_LED_STATE_START)) {
-			if (ictrl->func_tbl->flush_req != NULL)
-				ictrl->func_tbl->flush_req(ictrl, IR_FLUSH_ALL, 0);
 		}
 		rc = cam_ir_led_release_dev(ictrl);
 		if (rc)
@@ -1466,10 +968,6 @@ static int32_t cam_ir_led_driver_cmd(struct cam_ir_led_ctrl *ictrl,
 			CAM_ERR(CAM_IR_LED, "Failed STOP_DEV: rc=%d", rc);
 			goto release_mutex;
 		}
-		if (ictrl->func_tbl->flush_req != NULL)
-			ictrl->func_tbl->flush_req(ictrl, IR_FLUSH_ALL, 0);
-
-		ictrl->last_flush_req = 0;
 		ictrl->ir_led_state = CAM_IR_LED_STATE_ACQUIRE;
 		break;
 	case CAM_CONFIG_DEV:
@@ -1606,7 +1104,7 @@ static const struct v4l2_subdev_internal_ops cam_ir_led_internal_ops = {
 static int cam_ir_led_component_bind(struct device *dev,
 	struct device *master_dev, void *data)
 {
-	int rc = 0, i = 0;
+	int rc = 0;
 	struct cam_ir_led_ctrl *ictrl = NULL;
 	struct platform_device *pdev = to_platform_device(dev);
 
@@ -1657,31 +1155,8 @@ static int cam_ir_led_component_bind(struct device *dev,
 
 	INIT_LIST_HEAD(&(ictrl->i2c_data.init_settings.list_head));
 	INIT_LIST_HEAD(&(ictrl->i2c_data.config_settings.list_head));
-	INIT_LIST_HEAD(&(ictrl->i2c_data.streamoff_settings.list_head));
-
-	ictrl->i2c_data.per_frame =
-		kzalloc(sizeof(struct i2c_settings_array) *
-		MAX_PER_FRAME_ARRAY, GFP_KERNEL);
-	if (ictrl->i2c_data.per_frame == NULL) {
-		rc = -ENOMEM;
-		return rc;
-	}
-	for (i = 0; i < MAX_PER_FRAME_ARRAY; i++)
-		INIT_LIST_HEAD(&(ictrl->i2c_data.per_frame[i].list_head));
 
 	ictrl->device_hdl = -1;
-	ictrl->bridge_intf.link_hdl = -1;
-
-	ictrl->bridge_intf.ops.get_dev_info =
-		cam_ir_led_publish_dev_info;
-	ictrl->bridge_intf.ops.link_setup =
-		cam_ir_led_establish_link;
-	ictrl->bridge_intf.ops.apply_req =
-		cam_ir_led_apply_request;
-	ictrl->bridge_intf.ops.flush_req =
-		cam_ir_led_flush_request;
-	ictrl->last_flush_req = 0;
-
 	platform_set_drvdata(pdev, ictrl);
 	v4l2_set_subdevdata(&ictrl->v4l2_dev_str.sd, ictrl);
 	mutex_init(&(ictrl->ir_led_mutex));
@@ -1702,8 +1177,6 @@ static void cam_ir_led_component_unbind(struct device *dev,
 		CAM_ERR(CAM_IR_LED, " Ir_led device is NULL");
 		return;
 	}
-	kfree(ictrl->i2c_data.per_frame);
-	ictrl->i2c_data.per_frame = NULL;
 
 	kfree(ictrl);
 }
@@ -1759,7 +1232,6 @@ static struct cam_ir_led_table cam_i2c_ir_led_table = {
 	.func_tbl = {
 		.power_ops = &cam_i2c_ir_led_power_ops,
 		.apply_setting = &cam_i2c_ir_led_apply_setting,
-		.flush_req = &cam_i2c_ir_led_flush_request,
 		.ircut_ops = &cam_i2c_ir_cut_ops,
 	},
 };
