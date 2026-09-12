@@ -924,17 +924,15 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 
 		}
 
-                if (ictrl->func_tbl->power_ops != NULL) {
-                        rc = ictrl->func_tbl->power_ops(ictrl, true);
-                        if (rc) {
-                                CAM_ERR(CAM_IR_LED,
-                                        "Enable Regulator Failed rc = %d", rc);
-                                cam_mem_put_cpu_buf(config.packet_handle);
-                                return rc;
-                        }
-                }
+		if (ictrl->func_tbl->power_ops != NULL) {
+			rc = ictrl->func_tbl->power_ops(ictrl, true);
+			if (rc) {
+				CAM_WARN(CAM_IR_LED,
+					"Enable Regulator Failed rc = %d", rc);
+			}
+		}
 
-                if (ictrl->func_tbl->apply_setting != NULL) {
+		if (ictrl->func_tbl->apply_setting != NULL) {
 			rc = ictrl->func_tbl->apply_setting(ictrl, 0);
 			if (rc) {
 				CAM_ERR(CAM_IR_LED, "cannot apply settings rc = %d", rc);
