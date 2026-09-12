@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/kernel.h>
@@ -227,7 +227,7 @@ int32_t cam_sensor_handle_random_write(
 	return rc;
 }
 
-int32_t cam_sensor_handle_continuous_write(
+static int32_t cam_sensor_handle_continuous_write(
 	struct cam_cmd_i2c_continuous_wr *cam_cmd_i2c_continuous_wr,
 	struct i2c_settings_array *i2c_reg_settings,
 	uint32_t *cmd_length_in_bytes, int32_t *offset,
@@ -257,8 +257,6 @@ int32_t cam_sensor_handle_continuous_write(
 	else
 		return -EINVAL;
 
-	i2c_list->i2c_settings.frequency =
-		cam_cmd_i2c_continuous_wr->header.frequency;
 	i2c_list->i2c_settings.addr_type =
 		cam_cmd_i2c_continuous_wr->header.addr_type;
 	i2c_list->i2c_settings.data_type =
@@ -386,7 +384,7 @@ int32_t cam_sensor_util_write_qtimer_to_io_buffer(
 	return rc;
 }
 
-int32_t cam_sensor_handle_random_read(
+static int32_t cam_sensor_handle_random_read(
 	struct cam_cmd_i2c_random_rd *cmd_i2c_random_rd,
 	struct i2c_settings_array *i2c_reg_settings,
 	uint16_t *cmd_length_in_bytes,
@@ -2043,7 +2041,7 @@ int cam_sensor_core_power_up(struct cam_sensor_power_ctrl_t *ctrl,
 	gpio_num_info = ctrl->gpio_num_info;
 	num_vreg = soc_info->num_rgltr;
 
-	if ((num_vreg < 0) || (num_vreg > CAM_SOC_MAX_REGULATOR)) {
+	if ((num_vreg <= 0) || (num_vreg > CAM_SOC_MAX_REGULATOR)) {
 		CAM_ERR(CAM_SENSOR, "failed: num_vreg %d", num_vreg);
 		return -EINVAL;
 	}
@@ -2395,7 +2393,7 @@ int cam_sensor_util_power_down(struct cam_sensor_power_ctrl_t *ctrl,
 	gpio_num_info = ctrl->gpio_num_info;
 	num_vreg = soc_info->num_rgltr;
 
-	if ((num_vreg < 0) || (num_vreg > CAM_SOC_MAX_REGULATOR)) {
+	if ((num_vreg <= 0) || (num_vreg > CAM_SOC_MAX_REGULATOR)) {
 		CAM_ERR(CAM_SENSOR, "failed: num_vreg %d", num_vreg);
 		return -EINVAL;
 	}

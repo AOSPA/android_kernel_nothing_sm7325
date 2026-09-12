@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2020, The Linux Foundataion. All rights reserved.
- * Copyright (c) 2023,2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/io.h>
@@ -11,8 +11,8 @@
 
 #include "cam_debug_util.h"
 
-static ulong debug_mdl;
-module_param(debug_mdl, ulong, 0644);
+static uint debug_mdl;
+module_param(debug_mdl, uint, 0644);
 
 /* 0x0 - only logs, 0x1 - only trace, 0x2 - logs + trace */
 static uint debug_type;
@@ -121,7 +121,7 @@ error:
 	return -EPERM;
 }
 
-const char *cam_get_module_name(unsigned long int module_id)
+const char *cam_get_module_name(unsigned int module_id)
 {
 	const char *name = NULL;
 
@@ -222,9 +222,6 @@ const char *cam_get_module_name(unsigned long int module_id)
 	case CAM_IR_LED:
 		name = "CAM-IR-LED";
 		break;
-	case CAM_LENS_DRIVER:
-		name = "CAM-LENS-DRIVER";
-		break;
 	default:
 		name = "CAM";
 		break;
@@ -261,7 +258,7 @@ const char *cam_get_tag_name(unsigned int tag_id)
 	return name;
 }
 
-void cam_debug_log(unsigned long int module_id, const char *func, const int line,
+void cam_debug_log(unsigned int module_id, const char *func, const int line,
 	const char *fmt, ...)
 {
 	char str_buffer[STR_BUFFER_MAX_LENGTH];
@@ -293,7 +290,7 @@ void cam_debug_log(unsigned long int module_id, const char *func, const int line
 	va_end(args);
 }
 
-void cam_debug_trace(unsigned int tag, unsigned long int module_id,
+void cam_debug_trace(unsigned int tag, unsigned int module_id,
 	const char *func, const int line, const char *fmt, ...)
 {
 	char str_buffer[STR_BUFFER_MAX_LENGTH];

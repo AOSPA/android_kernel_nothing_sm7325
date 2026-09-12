@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
- * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef _CAM_SENSOR_SPI_H_
@@ -14,8 +13,6 @@
 
 #define MAX_SPI_SIZE 110
 #define SPI_DYNAMIC_ALLOC
-#define SPI_COMM_VERSION_0 0
-#define SPI_COMM_VERSION_1 1
 
 struct cam_camera_spi_inst {
 	uint8_t opcode;
@@ -64,12 +61,8 @@ struct cam_sensor_spi_client {
 	uint8_t retry_delay;
 	uint8_t retries;
 	uint8_t busy_mask;
-	uint8_t is_single_byte_txfr;
-	uint8_t spi_communication_ver;
-	uint8_t spi_mode;
 	uint16_t page_size;
 	uint32_t erase_size;
-	uint32_t frequency;
 };
 static __always_inline
 uint16_t cam_camera_spi_get_hlen(struct cam_camera_spi_inst *inst)
@@ -100,10 +93,6 @@ int cam_spi_write(struct camera_io_master *client,
 int cam_spi_write_table(struct camera_io_master *client,
 	struct cam_sensor_i2c_reg_setting *write_setting);
 
-int cam_spi_write_continuous_table(struct camera_io_master *client,
-	struct cam_sensor_i2c_reg_setting *write_setting,
-	uint8_t cam_sensor_i2c_write_flag);
-
 int cam_spi_erase(struct camera_io_master *client,
 	uint32_t addr, enum camera_sensor_i2c_type addr_type,
 	uint32_t size);
@@ -111,7 +100,4 @@ int cam_spi_erase(struct camera_io_master *client,
 int cam_spi_write_seq(struct camera_io_master *client,
 	uint32_t addr, uint8_t *data,
 	enum camera_sensor_i2c_type addr_type, uint32_t num_byte);
-
-int cam_spi_read_seq_v1(struct camera_io_master *io_master_info,
-	struct cam_sensor_i2c_reg_setting *read_setting);
 #endif

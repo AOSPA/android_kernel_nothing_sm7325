@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023,2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -719,8 +719,6 @@ put_ref:
 void cam_sensor_query_cap(struct cam_sensor_ctrl_t *s_ctrl,
 	struct  cam_sensor_query_cap *query_cap)
 {
-	int32_t i = 0;
-
 	query_cap->pos_roll = s_ctrl->sensordata->pos_roll;
 	query_cap->pos_pitch = s_ctrl->sensordata->pos_pitch;
 	query_cap->pos_yaw = s_ctrl->sensordata->pos_yaw;
@@ -737,10 +735,6 @@ void cam_sensor_query_cap(struct cam_sensor_ctrl_t *s_ctrl,
 		s_ctrl->sensordata->subdev_id[SUB_MODULE_OIS];
 	query_cap->ir_led_slot_id =
 		s_ctrl->sensordata->subdev_id[SUB_MODULE_IR_LED];
-	for (i = 0; i < MAX_LDM_SUPPORTED; i++) {
-		query_cap->ldm_slot_id[i] =
-			s_ctrl->sensordata->subdev_id[SUB_MODULE_LENS_DRIVER0 + i];
-	}
 	query_cap->slot_info =
 		s_ctrl->soc_info.index;
 }

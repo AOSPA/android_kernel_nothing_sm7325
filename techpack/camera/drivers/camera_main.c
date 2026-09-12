@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2019-2020, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023,2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include <linux/module.h>
 #include <linux/build_bug.h>
@@ -27,7 +27,6 @@
 #include "cam_hdmi_bdg_core.h"
 #include "cam_dp_bdg_core.h"
 #include "cam_ir_led_dev.h"
-#include "cam_lens_driver_dev.h"
 
 #if IS_REACHABLE(CONFIG_LEDS_QPNP_FLASH_V2) || \
 	IS_REACHABLE(CONFIG_LEDS_QTI_FLASH)
@@ -120,7 +119,6 @@ static const struct camera_submodule_component camera_sensor[] = {
 	{&cam_flash_init_module, &cam_flash_exit_module},
 #endif
 	{&cam_ir_led_init_module, &cam_ir_led_exit_module},
-	{&cam_lens_driver_init, &cam_lens_driver_exit},
 #endif
 };
 
