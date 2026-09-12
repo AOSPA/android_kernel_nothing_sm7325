@@ -1,5 +1,5 @@
 /* Copyright (c) 2019-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -281,16 +281,7 @@ static int32_t cam_irled_slaveInfo_pkt_parser(struct cam_ir_led_ctrl *ictrl,
 		return -EINVAL;
 	}
 
-	if (ictrl->io_master_info.master_type == CCI_MASTER) {
-		ictrl->io_master_info.cci_client->cci_i2c_master =
-			ictrl->cci_i2c_master;
-		ictrl->io_master_info.cci_client->i2c_freq_mode =
-			i2c_info->i2c_freq_mode;
-		ictrl->io_master_info.cci_client->sid =
-			i2c_info->slave_addr >> 1;
-		CAM_DBG(CAM_IR_LED, "Slave addr: 0x%x Freq Mode: %d",
-			i2c_info->slave_addr, i2c_info->i2c_freq_mode);
-	} else if (ictrl->io_master_info.master_type == I2C_MASTER) {
+	if (ictrl->io_master_info.master_type == I2C_MASTER) {
 		ictrl->io_master_info.client->addr = i2c_info->slave_addr;
 		CAM_DBG(CAM_IR_LED, "Slave addr: 0x%x", i2c_info->slave_addr);
 	} else {
@@ -321,8 +312,7 @@ int cam_i2c_ir_cut_ops(struct cam_ir_led_ctrl *ictrl,
 	return rc;
 }
 
-int cam_i2c_ir_led_power_ops(struct cam_ir_led_ctrl *ictrl,
-	bool regulator_enable)
+int cam_i2c_ir_led_power_ops(struct cam_ir_led_ctrl *ictrl)
 {
 	int rc = 0;
 	struct cam_hw_soc_info *soc_info = &ictrl->soc_info;
@@ -345,7 +335,7 @@ int cam_i2c_ir_led_power_ops(struct cam_ir_led_ctrl *ictrl,
 
 	if (power_info->power_setting_size == 0) {
 		rc = 0;
-	} else if (soc_info->num_rgltr > 0){
+	} else {
 		/* Parse and fill vreg params for power up settings */
 		rc = msm_camera_fill_vreg_params(soc_info,
 			power_info->power_setting,
@@ -359,7 +349,7 @@ int cam_i2c_ir_led_power_ops(struct cam_ir_led_ctrl *ictrl,
 
 	if (power_info->power_down_setting_size == 0) {
 		rc = 0;
-	} else if (soc_info->num_rgltr > 0){
+	} else {
 		/* Parse and fill vreg params for power down settings*/
 		rc = msm_camera_fill_vreg_params(
 			soc_info,
@@ -372,41 +362,25 @@ int cam_i2c_ir_led_power_ops(struct cam_ir_led_ctrl *ictrl,
 		}
 	}
 
-	if (regulator_enable && !ictrl->is_regulator_enabled) {
-		rc = cam_sensor_core_power_up(power_info, soc_info);
-		if (rc) {
-			CAM_ERR(CAM_IR_LED, "failed in irled power up rc %d", rc);
-			return rc;
-		}
+	rc = cam_sensor_core_power_up(power_info, soc_info);
+	if (rc) {
+		CAM_ERR(CAM_IR_LED, "failed in irled power up rc %d", rc);
+		return rc;
+	}
 
+	if (ictrl->io_master_info.master_type == CCI_MASTER) {
 		rc = camera_io_init(&(ictrl->io_master_info));
 		if (rc) {
 			CAM_ERR(CAM_IR_LED, "cci_init failed");
-			cam_sensor_util_power_down(power_info, soc_info);
 			goto free_pwr_settings;
 		}
-		ictrl->is_regulator_enabled = true;
-	} else if (!regulator_enable && ictrl->is_regulator_enabled) {
-		rc = cam_sensor_util_power_down(power_info, soc_info);
-		if (rc) {
-			CAM_ERR(CAM_IR_LED, "failed in irled power down rc %d", rc);
-			return rc;
-		}
-
-		camera_io_release(&(ictrl->io_master_info));
-		ictrl->is_regulator_enabled = false;
-		goto free_pwr_settings;
 	}
 
 	return rc;
 
 free_pwr_settings:
-	kfree(power_info->power_down_setting);
-	kfree(power_info->power_setting);
-	power_info->power_down_setting = NULL;
-	power_info->power_setting = NULL;
-	power_info->power_down_setting_size = 0;
-	power_info->power_setting_size = 0;
+	if (cam_sensor_util_power_down(power_info, soc_info))
+		CAM_ERR(CAM_IR_LED, "Power down failure");
 
 	return rc;
 }
@@ -843,7 +817,6 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 
 				irled_init = (struct cam_irled_init *)cmd_buf;
 				ictrl->irled_type = irled_init->irled_type;
-				ictrl->is_regulator_enabled = false;
 				cmd_length_in_bytes =
 					sizeof(struct cam_irled_init);
 				processed_cmd_buf_in_bytes +=
@@ -925,7 +898,7 @@ static int32_t cam_ir_led_config(struct cam_ir_led_ctrl *ictrl,
 		}
 
 		if (ictrl->func_tbl->power_ops != NULL) {
-			rc = ictrl->func_tbl->power_ops(ictrl, true);
+			rc = ictrl->func_tbl->power_ops(ictrl);
 			if (rc) {
 				CAM_WARN(CAM_IR_LED,
 					"Enable Regulator Failed rc = %d", rc);
@@ -1456,13 +1429,6 @@ static int32_t cam_ir_led_driver_cmd(struct cam_ir_led_ctrl *ictrl,
 			CAM_ERR(CAM_IR_LED,
 				" Failed in destroying the device Handle rc= %d",
 				rc);
-
-		if (ictrl->func_tbl->power_ops != NULL) {
-			rc = ictrl->func_tbl->power_ops(ictrl, false);
-			if (rc)
-				CAM_WARN(CAM_IR_LED, "Power Down Failed");
-		}
-
 		ictrl->ir_led_state = CAM_IR_LED_STATE_INIT;
 		break;
 	case CAM_QUERY_CAP:

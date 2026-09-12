@@ -1,5 +1,5 @@
 /* Copyright (c) 2019,2021 The Linux Foundation. All rights reserved.
- * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -183,11 +183,9 @@ struct cam_ir_led_ctrl {
 	struct device_node                  *of_node;
 	struct cam_subdev                   v4l2_dev_str;
 	struct mutex                        ir_led_mutex;
-	enum cam_ir_led_state               ir_led_state;
+	enum   cam_ir_led_state             ir_led_state;
 	int32_t                             device_hdl;
 	enum cam_ir_led_driver_type         ir_led_driver_type;
-	enum cci_i2c_master_t               cci_i2c_master;
-	enum cci_device_num                 cci_num;
 	struct camera_io_master             io_master_info;
 	struct i2c_data_settings            i2c_data;
 	uint8_t                             irled_type;
@@ -209,7 +207,7 @@ struct cam_ir_led_func {
 	int (*apply_setting)(struct cam_ir_led_ctrl *ictrl, uint64_t req_id);
 	int (*flush_req)(struct cam_ir_led_ctrl *ictrl,
 		enum cam_ir_led_flush_type type, uint64_t req_id);
-	int (*power_ops)(struct cam_ir_led_ctrl *ictrl, bool regulator_enable);
+	int (*power_ops)(struct cam_ir_led_ctrl *ictrl);
 	int (*ircut_ops)(struct cam_ir_led_ctrl *ictrl, uint64_t req_id);
 };
 
@@ -221,7 +219,7 @@ struct cam_ir_led_table {
 int cam_i2c_ir_led_apply_setting(struct cam_ir_led_ctrl *ictrl, uint64_t req_id);
 int cam_i2c_ir_led_flush_request(struct cam_ir_led_ctrl *ictrl,
 	enum cam_ir_led_flush_type type, uint64_t req_id);
-int cam_i2c_ir_led_power_ops(struct cam_ir_led_ctrl *ictrl, bool regulator_enable);
+int cam_i2c_ir_led_power_ops(struct cam_ir_led_ctrl *ictrl);
 int cam_i2c_ir_cut_ops(struct cam_ir_led_ctrl *ictrl, uint64_t req_id);
 
 /**

@@ -1,5 +1,5 @@
 /* Copyright (c) 2019, The Linux Foundation. All rights reserved.
- * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -176,7 +176,6 @@ int cam_ir_led_get_dt_data(struct cam_ir_led_ctrl *ictrl,
 	struct cam_hw_soc_info *soc_info)
 {
 	int32_t rc = 0, i = 0;
-	struct device_node *of_parent = NULL;
 
 	if (!ictrl) {
 		CAM_ERR(CAM_IR_LED, "NULL ir_led control structure");
@@ -218,61 +217,21 @@ int cam_ir_led_get_dt_data(struct cam_ir_led_ctrl *ictrl,
 			CAM_ERR(CAM_IR_LED, "Cannot get PWM device");
 		ictrl->ir_led_driver_type = IR_LED_DRIVER_PMIC;
 	} else if (of_property_read_bool(soc_info->dev->of_node, "i2c")) {
-		struct device_node *i2c_device = of_parse_phandle(ictrl->pdev->dev.of_node, "i2c", 0);
-		if (i2c_device == NULL)
-			CAM_ERR(CAM_IR_LED, "Cannot get I2C device");
+		struct device_node *PCA9632 = of_parse_phandle(ictrl->pdev->dev.of_node, "i2c", 0);
+		if (PCA9632 == NULL)
+			CAM_ERR(CAM_IR_LED, "Cannot get PCA9632 device");
 		else {
 			ictrl->io_master_info.client =
-				of_find_i2c_device_by_node(i2c_device);
+				of_find_i2c_device_by_node(PCA9632);
 
 			if (ictrl->io_master_info.client != NULL) {
 				ictrl->io_master_info.master_type = I2C_MASTER;
 				ictrl->ir_led_driver_type = IR_LED_DRIVER_I2C;
 			} else {
-				CAM_ERR(CAM_IR_LED, "Cannot get I2C device");
+				CAM_ERR(CAM_IR_LED, "Cannot get PCA9632 I2C device");
 			}
 
-			of_node_put(i2c_device);
-		}
-	} else if (of_property_read_bool(soc_info->dev->of_node, "cci-master")) {
-		/* Get CCI master */
-		rc = of_property_read_u32(ictrl->pdev->dev.of_node, "cci-master",
-			&ictrl->cci_i2c_master);
-		CAM_DBG(CAM_IR_LED, "cci-master %d, rc %d",
-			ictrl->cci_i2c_master, rc);
-		if (rc < 0) {
-			/* Set default master 0 */
-			ictrl->cci_i2c_master = MASTER_0;
-			rc = 0;
-		}
-
-		ictrl->io_master_info.master_type = CCI_MASTER;
-		ictrl->ir_led_driver_type = IR_LED_DRIVER_I2C;
-		CAM_DBG(CAM_IR_LED,
-			"master_type: %d", ictrl->io_master_info.master_type);
-
-		/* Initialize cci_client */
-		ictrl->io_master_info.cci_client = kzalloc(sizeof(
-			struct cam_sensor_cci_client), GFP_KERNEL);
-		if (!(ictrl->io_master_info.cci_client)) {
-			CAM_ERR(CAM_IR_LED, "failed to initialize cci_client");
-			return -ENOMEM;
-                }
-
-		of_parent = of_get_parent(ictrl->pdev->dev.of_node);
-		if (of_property_read_u32(of_parent, "cell-index",
-				&ictrl->cci_num) < 0)
-			/* Set default cci device 0 */
-			ictrl->cci_num = CCI_DEVICE_0;
-
-		ictrl->io_master_info.cci_client->cci_device = ictrl->cci_num;
-		CAM_DBG(CAM_IR_LED, "cci-index %d", ictrl->cci_num, rc);
-
-		rc = cam_sensor_util_init_gpio_pin_tbl(&ictrl->soc_info,
-			&ictrl->power_info.gpio_num_info);
-		if ((rc < 0) || (!ictrl->power_info.gpio_num_info)) {
-			CAM_ERR(CAM_IR_LED, "No/Error IR LED GPIOs");
-			return -EINVAL;
+			of_node_put(PCA9632);
 		}
 	} else {
 		ictrl->ir_led_driver_type = IR_LED_DRIVER_GPIO;
